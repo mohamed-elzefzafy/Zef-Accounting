@@ -14,7 +14,7 @@ export class JournalEntry {
   @Prop({
     type: [
       {
-        account: { type: Types.ObjectId, ref: 'ChartOfAccount', required: true },
+        account: { type: Types.ObjectId, ref: 'Account', required: true },
         debit: { type: Number, default: 0 },
         credit: { type: Number, default: 0 },
         costCenter: { type: Types.ObjectId, ref: 'CostCenter', default: null },

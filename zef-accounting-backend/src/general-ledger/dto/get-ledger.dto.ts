@@ -11,4 +11,8 @@ export class GetLedgerDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+
+  @IsOptional()
+  @IsMongoId()
+  costCenter: string;
 }

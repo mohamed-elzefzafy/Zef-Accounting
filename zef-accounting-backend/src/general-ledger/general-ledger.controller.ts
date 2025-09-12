@@ -8,6 +8,6 @@ export class GeneralLedgerController {
 
   @Post()
   async getLedger(@Body() dto: GetLedgerDto) {
-    return this.ledgerService.getLedger(dto);
+    return this.ledgerService.getGeneralLedger(dto);
   }
 }
