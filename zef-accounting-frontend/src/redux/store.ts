@@ -22,9 +22,9 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
   [apiSlice.reducerPath]: apiSlice.reducer,
-    // search,
-    // auth,
-  //   cart,
+    search,
+    auth,
+    // cart,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

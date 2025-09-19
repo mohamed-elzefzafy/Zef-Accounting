@@ -24,7 +24,7 @@ export interface UserLogin {
 
 
   export interface IUserInfo {
-    _id: string;
+    id: number;
     firstName: string;
     lastName: string;
     email: string;
@@ -34,7 +34,6 @@ export interface UserLogin {
     role: string;
     createdAt: string;
     updatedAt: string;
-    wishlist : ICourse[]
   }
 
   export type CloudinaryObject = {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CreateAccountDto } from './dto/create-chart.dto';
 import { ChartOfAccountsService } from './chart-of-accounts.service';
 
@@ -17,12 +17,12 @@ export class ChartOfAccountsController {
   }
 
   @Get(':id')
-  async getAccountById(@Param('id') id: string) {
+  async getAccountById(@Param('id',ParseIntPipe) id: number) {
     return this.chartService.getById(id);
   }
 
   @Get('children/:parentId')
-  async getChildren(@Param('parentId') parentId: string) {
+  async getChildren(@Param('parentId',ParseIntPipe) parentId: number) {
     return this.chartService.getChildren(parentId);
   }
 }

@@ -1,18 +1,21 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { JournalEntriesService } from './journal-entries.service';
 import { JournalEntriesController } from './journal-entries.controller';
 import { JwtModule } from '@nestjs/jwt';
-import { JournalEntry, JournalEntrySchema } from './entities/journal-entry.schema';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountEntity } from 'src/chart/entities/chart.entity';
+import { JournalEntryEntity, JournalEntryLineEntity } from './entities/journal-entry.entity';
+import { FiscalYearModule } from 'src/fiscal-year/fiscal-year.module';
+
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: JournalEntry.name, schema: JournalEntrySchema },
-    ]),
+      TypeOrmModule.forFeature([AccountEntity , JournalEntryEntity,JournalEntryLineEntity]),
     JwtModule,
+    FiscalYearModule,
   ],
   providers: [JournalEntriesService],
   controllers: [JournalEntriesController],
+  exports:[JournalEntriesService],
 })
 export class JournalEntriesModule {}

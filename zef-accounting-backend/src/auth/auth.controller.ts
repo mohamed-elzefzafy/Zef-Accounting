@@ -21,14 +21,13 @@ import { LoginDto } from './dtos/login.dto';
 import { Response } from 'express';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { VerificationCodeDto } from './dtos/verification-code.dto';
+import { JwtPayloadType } from 'src/common/types';
 import { CurrentUser } from './decorator/current-user.decorator';
 import { Roles } from './decorator/Roles.decorator';
+import { UserRoles } from 'src/common/enums/roles.enum';
 import { AuthGuard } from './guards/auth.guard';
 import { VerificationAccountDto } from './dtos/verification-account.dto';
 import { UpdateUserDto } from './dtos/update-user.dto';
-import { UserRoles } from 'src/shared/enums/roles.enum';
-import { JwtPayloadType } from 'src/shared/types';
-import { UpdateUserAddressDto } from './dtos/update-user-address.dto';
 
 @Controller('api/v1/auth')
 export class AuthController {
@@ -46,14 +45,6 @@ export class AuthController {
   @Post('login')
   login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
     return this.authService.login(loginDto, res);
-  }
-
-    @Patch('update-user-address')
-      @Roles([UserRoles.ADMIN, UserRoles.USER])
-  @UseGuards(AuthGuard)
-  updateUserAddress(@Body() updateUserAddressDto: UpdateUserAddressDto,@CurrentUser() user: JwtPayloadType,) {
-    const userId = user.id;
-    return this.authService.updateUserAddress(updateUserAddressDto, userId);
   }
 
   @Post('reset-password')
@@ -100,7 +91,7 @@ export class AuthController {
   public async updateCurrentUser(
     @Body() updateUserDto: UpdateUserDto,
     @CurrentUser() user: JwtPayloadType,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile('') file: Express.Multer.File,
   ) {
     return this.authService.updateCurrentUser(updateUserDto, user, file);
   }

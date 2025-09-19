@@ -7,7 +7,7 @@ export enum AccountType {
 }
 
 export interface IAccount {
-  _id: string;            
+  id: number;            
   name: string;
   type: AccountType;
   accountCode?: string;

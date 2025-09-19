@@ -69,4 +69,3 @@ export class AuthGuard implements CanActivate {
     return request.cookies?.token;
   }
 }
-

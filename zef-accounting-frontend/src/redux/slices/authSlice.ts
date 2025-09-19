@@ -7,7 +7,7 @@ interface IUserInfoObject {
 }
 const initialState : IUserInfoObject ={
   userInfo : {
-    _id: "",
+    id: -1,
     firstName: "",
     lastName:"",
     email: "",
@@ -18,14 +18,6 @@ const initialState : IUserInfoObject ={
     isAccountVerified:  false,
     verificationCode:  null,
     role: "user",
-    wishlist:[],
-  
-    // posts: PostEntity[];
-  
-    // likedPosts: PostEntity[];
-  
-    // comments: CommentEntity[];
-  
     createdAt:  "",
     updatedAt:  "",
 },
@@ -40,7 +32,7 @@ const authSlice = createSlice({
     },
     logoutAction : (state ) => {
       state.userInfo = {   
-        _id: "",
+        id: 0,
         firstName: "",
         lastName:"",
         email: "",
@@ -51,7 +43,6 @@ const authSlice = createSlice({
         isAccountVerified:  false,
         verificationCode:  null,
         role: "user",
-        wishlist:[],
       
         // posts: PostEntity[];
       

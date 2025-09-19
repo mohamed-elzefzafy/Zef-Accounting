@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { CostCenter, CostCenterSchema } from './entities/cost-center.schema';
+import {  CostCenterEntity } from './entities/cost-center.entity';
 import { CostCenterService } from './cost-center.service';
 import { CostCenterController } from './cost-center.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: CostCenter.name, schema: CostCenterSchema }])],
+  imports: [
+  TypeOrmModule.forFeature([CostCenterEntity]),
+  ],
   controllers: [CostCenterController],
   providers: [CostCenterService],
   exports: [CostCenterService],

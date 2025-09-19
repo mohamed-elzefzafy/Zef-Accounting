@@ -4,6 +4,7 @@ import {  Category, Dashboard, Group, Note, Reviews, School} from '@mui/icons-ma
 import { Box } from '@mui/material';
 import DrawerComponent from './_components/DrawerComponent';
 import { TopNav } from './_components/TopNav';
+import Header from '../components/Header';
 
 
 
@@ -13,17 +14,15 @@ const InstructorDashboardLayout = ({ children }: { children: ReactNode }) => {
 
   const InstructorDashboardArrayList = [
   { text:"Dashboard", icon: <Dashboard />, path: "/" },
-  { text: "Courses", icon: <School/>, path: "/journal" },
-  { text: "Categories", icon: <Category/>, path: "/ledger" },
-  { text: "Users", icon: <Group />, path: "/admin-dashboard/users" },
-  { text: "Reviews", icon: <Reviews />, path: "/admin-dashboard/reviews" },
-  { text: "Instructor request", icon: <Note />, path: "/admin-dashboard/instructor-request" },
+  { text: "Create Journal Entry", icon: <School/>, path: "/journal" },
+  { text: "General Ledger", icon: <Category/>, path: "/ledger" },
 ];
 
 
   return (
     <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh' }}>
-      <TopNav/>
+      {/* <TopNav/> */}
+      <Header/>
   <DrawerComponent drawerOptions={InstructorDashboardArrayList} />
 
   <Box

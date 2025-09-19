@@ -11,9 +11,9 @@ import {
 } from 'class-validator';
 
 export class JournalEntryLineDto {
-  @IsMongoId()
+  @IsNumber()
   @IsNotEmpty()
-  account: string;
+  account: number;
 
   @IsNumber()
   @Min(0)
@@ -23,9 +23,9 @@ export class JournalEntryLineDto {
   @Min(0)
   credit: number;
 
-  @IsMongoId()
+  @IsNumber()
   @IsOptional()
-  costCenter?: string;
+  costCenter?: number;
 }
 
 export class CreateJournalEntryDto {

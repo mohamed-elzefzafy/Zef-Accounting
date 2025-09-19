@@ -1,58 +1,62 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import {
-  Account,
-  AccountDocument,
-  AccountType,
-} from '../entities/chart.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AccountEntity, AccountType } from '../entities/chart.entity';
 
 @Injectable()
 export class ChartSeeder implements OnModuleInit {
   constructor(
-    @InjectModel(Account.name) private chartModel: Model<AccountDocument>,
+    @InjectRepository(AccountEntity)
+    private readonly accountRepository: Repository<AccountEntity>,
   ) {}
 
   async onModuleInit() {
-    const count = await this.chartModel.countDocuments();
+    const count = await this.accountRepository.count();
     if (count === 0) {
-      await this.chartModel.insertMany([
+      const accounts = [
         {
           name: 'asset',
           accountCode: '1000',
           type: AccountType.Asset,
           parent: null,
-          children: [],
+          isMain: true,
+          isSub: false,
         },
         {
           name: 'liability',
           accountCode: '2000',
           type: AccountType.Liability,
           parent: null,
-          children: [],
+          isMain: true,
+          isSub: false,
         },
         {
           name: 'equity',
           accountCode: '3000',
           type: AccountType.Equity,
           parent: null,
-          children: [],
+          isMain: true,
+          isSub: false,
         },
         {
           name: 'revenue',
           accountCode: '4000',
           type: AccountType.Revenue,
           parent: null,
-          children: [],
+          isMain: true,
+          isSub: false,
         },
         {
           name: 'expense',
           accountCode: '5000',
           type: AccountType.Expense,
           parent: null,
-          children: [],
+          isMain: true,
+          isSub: false,
         },
-      ]);
+      ];
+
+      await this.accountRepository.save(accounts);
       console.log('✅ Seeded chart of accounts');
     }
   }

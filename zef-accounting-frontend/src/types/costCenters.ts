@@ -1,7 +1,7 @@
 export type CostCenterType = 'project' | 'product' | 'branch';
 
 export interface ICostCenter {
-  _id?: string; 
+  id: number; 
   name: string;
   type: CostCenterType;
   description?: string;

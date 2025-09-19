@@ -1,5 +1,12 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { AccountType } from '../entities/chart.schema';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { AccountType } from '../entities/chart.entity';
+import { Type } from 'class-transformer';
 
 export class CreateAccountDto {
   @IsNotEmpty()
@@ -14,6 +21,7 @@ export class CreateAccountDto {
   type: AccountType;
 
   @IsNotEmpty()
-  @IsString()
-  parentId?: string;
+  @IsNumber()
+  @Type(() => Number)
+  parentId?: number;
 }

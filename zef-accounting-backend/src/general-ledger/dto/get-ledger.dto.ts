@@ -1,8 +1,8 @@
-import { IsMongoId, IsOptional, IsDateString } from 'class-validator';
+import { IsMongoId, IsOptional, IsDateString, IsNumber } from 'class-validator';
 
 export class GetLedgerDto {
-  @IsMongoId()
-  accountId: string; // ID of account from COA
+  @IsNumber()
+  accountId: number;
 
   @IsOptional()
   @IsDateString()
@@ -13,6 +13,6 @@ export class GetLedgerDto {
   endDate?: string;
 
   @IsOptional()
-  @IsMongoId()
-  costCenter: string;
+  @IsNumber()
+  costCenter?: number;
 }
