@@ -78,6 +78,7 @@ export class ChartOfAccountsService {
     throw new BadRequestException('This account must have a parent.');
   }
 
+
   // تحقق من صحة الـ type
   if (!(Object.values(AccountType) as string[]).includes(type)) {
     throw new BadRequestException('Invalid account type.');
@@ -94,6 +95,9 @@ export class ChartOfAccountsService {
 
     if (!parent) {
       throw new BadRequestException('Parent account not found.');
+    }
+    if (parent.type !==  type) {
+  throw new BadRequestException('the type must be the Parent account type.');
     }
 
     const children = await this.accountRepository.find({

@@ -37,7 +37,7 @@
 
 
 
-import { Controller, Post, Get, Param, Body, Patch, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, Patch, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { FiscalYearService } from './fiscal-year.service';
 import { CreateFiscalYearDto } from './dto/create-fiscal-year.dto';
 import { CurrentUser } from 'src/auth/decorator/current-user.decorator';
@@ -65,23 +65,41 @@ export class FiscalYearController {
     return this.fiscalYearService.findOne(Number(year));
   }
 
-  @Patch(':year/close')
-    @Roles([UserRoles.ADMIN])
-    @UseGuards(AuthGuard)
-  async closeYear(@Param('year') year: number,@CurrentUser() user: JwtPayloadType) {
-    const userId = user.id.toString();
-    return this.fiscalYearService.closeYear(Number(year), userId);
-  }
+  // @Patch(':year/close')
+  //   @Roles([UserRoles.ADMIN])
+  //   @UseGuards(AuthGuard)
+  // async closeYear(@Param('year') year: number,@CurrentUser() user: JwtPayloadType) {
+  //   const userId = user.id.toString();
+  //   return this.fiscalYearService.closeYear(Number(year), userId);
+  // }
 
-  @Patch(':year/open')
-    @Roles([UserRoles.ADMIN])
-    @UseGuards(AuthGuard)
-  async openYear(@Param('year') year: number) {
-    return this.fiscalYearService.openYear(Number(year));
-  }
+  // @Patch(':year/open')
+  //   @Roles([UserRoles.ADMIN])
+  //   @UseGuards(AuthGuard)
+  // async openYear(@Param('year') year: number) {
+  //   return this.fiscalYearService.openYear(Number(year));
+  // }
 
   @Get('current/active')
   async getCurrentYear() {
     return this.fiscalYearService.getCurrentYear();
+  }
+
+
+    // 👇 إقفال السنة
+  @Patch(':year/close')
+    @Roles([UserRoles.ADMIN])
+   @UseGuards(AuthGuard)
+  async closeYear(@Param('year', ParseIntPipe) year: number,  @CurrentUser() user: JwtPayloadType) {
+    const userId = user.id;
+    return this.fiscalYearService.closeYear(year , userId);
+  }
+
+  // 👇 افتتاح السنة
+  @Patch(':year/open')
+    @Roles([UserRoles.ADMIN])
+   @UseGuards(AuthGuard)
+  async openYear(@Param('year', ParseIntPipe) year: number) {
+    return this.fiscalYearService.openYear(year);
   }
 }

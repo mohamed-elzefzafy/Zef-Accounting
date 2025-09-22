@@ -12,17 +12,14 @@ import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import ToggleDarkLightIcons from "@/utils/theme/ToggleDarkLightIcons";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { common } from "@mui/material/colors";
 import { useLogoutMutation } from "@/redux/slices/api/authApiSlice";
-import { logoutAction, setCredentials } from "@/redux/slices/authSlice";
+import { logoutAction } from "@/redux/slices/authSlice";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import {  useState } from "react";
 import { styled } from '@mui/material/styles';
 import Badge, { BadgeProps } from '@mui/material/Badge';
-import { ShoppingCart } from "@mui/icons-material";
 
 function Header() {
   const router = useRouter();
@@ -63,13 +60,13 @@ function Header() {
   };
 
   
-  const StyledBadge = styled(Badge)<BadgeProps>(() => ({
-    '& .MuiBadge-badge': {
-      top: "4px",
-      left: "3px",
-      padding: '0',
-    },
-  }));
+  // const StyledBadge = styled(Badge)<BadgeProps>(() => ({
+  //   '& .MuiBadge-badge': {
+  //     top: "4px",
+  //     left: "3px",
+  //     padding: '0',
+  //   },
+  // }));
 
 
 

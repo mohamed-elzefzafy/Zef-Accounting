@@ -17,6 +17,7 @@ import {
 import { useGetAccountsQuery } from '@/redux/slices/api/accountsApiSlice';
 import { useGetCostCentersQuery } from '@/redux/slices/api/CostCentersApiSlice';
 import { useCreateJournalEntryMutation } from '@/redux/slices/api/journalEntryApiSlice';
+import toast from 'react-hot-toast';
 
 export function JournalEntryForm() {
   const { data: accounts } = useGetAccountsQuery();
@@ -51,12 +52,9 @@ export function JournalEntryForm() {
     };
     try {
       await createJournal(body).unwrap();
-      alert('Journal entry created');
+      toast.success('Journal entry created')
     } catch (err: any) {
-      alert(
-        'Create failed: ' +
-          (err?.data?.message || err.message),
-      );
+      toast.error('Create failed: ' + (err?.data?.message || err.message))
     }
   };
 

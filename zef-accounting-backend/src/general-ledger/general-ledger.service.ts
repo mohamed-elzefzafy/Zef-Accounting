@@ -212,10 +212,107 @@ export class GeneralLedgerService {
 // }
 
 
+// async getGeneralLedger(dto: GetLedgerDto) {
+//   const { accountId, startDate, endDate, costCenter } = dto;
+
+//   // ✅ نبنى الـ query بالـ queryBuilder
+//   const qb = this.journalEntryRepository
+//     .createQueryBuilder('journal')
+//     .leftJoinAndSelect('journal.entries', 'entry')
+//     .leftJoinAndSelect('entry.account', 'account')
+//     .leftJoinAndSelect('entry.costCenter', 'cc')
+//     .where('journal.date BETWEEN :startDate AND :endDate', { startDate, endDate })
+//     .andWhere('account.id = :accountId', { accountId });
+
+//   if (costCenter) {
+//     qb.andWhere('cc.id = :costCenter', { costCenter });
+//   }
+
+//   const journalEntries = await qb
+//     .orderBy('journal.date', 'ASC')
+//     .addOrderBy('journal.sequenceNumber', 'ASC')
+//     .getMany();
+
+//   if (!journalEntries || journalEntries.length === 0) {
+//     throw new NotFoundException(
+//       'No journal entries found for this account in the given period',
+//     );
+//   }
+
+//   let debitTotal = 0;
+//   let creditTotal = 0;
+//   let runningBalance = 0;
+
+//   const details: any[] = [];
+
+//   for (const entry of journalEntries) {
+//     for (const line of entry.entries) {
+//       const accId =
+//         typeof line.account === 'object'
+//           ? (line.account as any).id.toString()
+//           : String(line.account);
+
+//       const lineCostCenterId = line.costCenter
+//         ? typeof line.costCenter === 'object'
+//           ? (line.costCenter as any).id.toString()
+//           : String(line.costCenter)
+//         : null;
+
+//       if (accId === accountId.toString()) {
+//         if (!costCenter || lineCostCenterId === costCenter.toString()) {
+//           if (line.debit > 0) {
+//             debitTotal += Number(line.debit);
+//             runningBalance += Number(line.debit);
+
+//             details.push({
+//               date: entry.date,
+//               entryNumber: entry.sequenceNumber,
+//               code: entry.code,
+//               description: entry.description,
+//               type: 'debit',
+//               debit: Number(line.debit),
+//               credit: 0,
+//               costCenter: line.costCenter || null,
+//               balance: runningBalance,
+//             });
+//           }
+
+//           if (line.credit > 0) {
+//             creditTotal += Number(line.credit);
+//             runningBalance -= Number(line.credit);
+
+//             details.push({
+//               date: entry.date,
+//               entryNumber: entry.sequenceNumber,
+//               code: entry.code,
+//               description: entry.description,
+//               type: 'credit',
+//               debit: 0,
+//               credit: Number(line.credit),
+//               costCenter: line.costCenter || null,
+//               balance: runningBalance,
+//             });
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   return {
+//     accountId,
+//     costCenter: costCenter || 'All',
+//     period: { startDate, endDate },
+//     totalDebit: debitTotal,
+//     totalCredit: creditTotal,
+//     balance: debitTotal - creditTotal,
+//     details,
+//   };
+// }
+
 async getGeneralLedger(dto: GetLedgerDto) {
   const { accountId, startDate, endDate, costCenter } = dto;
 
-  // ✅ نبنى الـ query بالـ queryBuilder
+  // ✅ نبني الـ query
   const qb = this.journalEntryRepository
     .createQueryBuilder('journal')
     .leftJoinAndSelect('journal.entries', 'entry')
@@ -228,6 +325,7 @@ async getGeneralLedger(dto: GetLedgerDto) {
     qb.andWhere('cc.id = :costCenter', { costCenter });
   }
 
+  // ✅ هات القيود بالترتيب
   const journalEntries = await qb
     .orderBy('journal.date', 'ASC')
     .addOrderBy('journal.sequenceNumber', 'ASC')
@@ -235,7 +333,7 @@ async getGeneralLedger(dto: GetLedgerDto) {
 
   if (!journalEntries || journalEntries.length === 0) {
     throw new NotFoundException(
-      'No journal entries found for this account in the given period',
+      `No journal entries found for account ${accountId} in the given period`,
     );
   }
 
@@ -258,8 +356,10 @@ async getGeneralLedger(dto: GetLedgerDto) {
           : String(line.costCenter)
         : null;
 
+      // ✅ تأكد الحساب + مركز التكلفة (لو فيه)
       if (accId === accountId.toString()) {
         if (!costCenter || lineCostCenterId === costCenter.toString()) {
+          // ✅ لو مدين
           if (line.debit > 0) {
             debitTotal += Number(line.debit);
             runningBalance += Number(line.debit);
@@ -273,10 +373,12 @@ async getGeneralLedger(dto: GetLedgerDto) {
               debit: Number(line.debit),
               credit: 0,
               costCenter: line.costCenter || null,
+              isClosing: entry.isClosing || false, // 👈 يوضح لو قيد إقفال
               balance: runningBalance,
             });
           }
 
+          // ✅ لو دائن
           if (line.credit > 0) {
             creditTotal += Number(line.credit);
             runningBalance -= Number(line.credit);
@@ -290,6 +392,7 @@ async getGeneralLedger(dto: GetLedgerDto) {
               debit: 0,
               credit: Number(line.credit),
               costCenter: line.costCenter || null,
+              isClosing: entry.isClosing || false,
               balance: runningBalance,
             });
           }
@@ -308,6 +411,5 @@ async getGeneralLedger(dto: GetLedgerDto) {
     details,
   };
 }
-
 
 }
