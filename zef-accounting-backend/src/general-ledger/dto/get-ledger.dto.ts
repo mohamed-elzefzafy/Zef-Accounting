@@ -1,4 +1,4 @@
-import { IsMongoId, IsOptional, IsDateString, IsNumber } from 'class-validator';
+import {  IsOptional, IsDateString, IsNumber } from 'class-validator';
 
 export class GetLedgerDto {
   @IsNumber()
@@ -6,11 +6,11 @@ export class GetLedgerDto {
 
   @IsOptional()
   @IsDateString()
-  startDate?: string;
+  startDate?: Date;
 
   @IsOptional()
   @IsDateString()
-  endDate?: string;
+  endDate?: Date;
 
   @IsOptional()
   @IsNumber()

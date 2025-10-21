@@ -11,7 +11,7 @@ export interface IJournalEntry {
   _id: string;
   date: string; // ISO string (backend sends Date as string in JSON)
   description: string;
-  entries: IJournalEntryLine[];
+  lines: IJournalEntryLine[];
   createdBy: string;
   lastModifiedBy?: string;
   createdAt: string;
@@ -22,5 +22,5 @@ export interface IJournalEntry {
 export interface ICreateJournalEntryInput {
   date: string; // ISO string
   description: string;
-  entries: IJournalEntryLine[];
+  lines: IJournalEntryLine[];
 }

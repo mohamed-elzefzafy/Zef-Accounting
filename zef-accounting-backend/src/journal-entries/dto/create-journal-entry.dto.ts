@@ -39,5 +39,5 @@ export class CreateJournalEntryDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => JournalEntryLineDto)
-  entries: JournalEntryLineDto[];
+  lines: JournalEntryLineDto[];
 }

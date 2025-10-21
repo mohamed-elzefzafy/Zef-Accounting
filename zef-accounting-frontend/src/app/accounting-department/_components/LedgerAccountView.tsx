@@ -52,18 +52,20 @@ export function LedgerAccountView() {
       endDate,
     }).unwrap();
 
-    const sorted = [...(res.details || [])].sort((a: any, b: any) => {
+    // هنا استخدم res.ledger بدل details
+    const sorted = [...(res.ledger || [])].sort((a: any, b: any) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
-      if (dateA !== dateB) return dateA - dateB;
-      return (a.sequenceNumber || 0) - (b.sequenceNumber || 0);
+      return dateA - dateB;
     });
 
     setRows(sorted);
+
+    // هنا استخدم res.totals
     setTotals({
-      debit: res.totalDebit || 0,
-      credit: res.totalCredit || 0,
-      balance: res.balance || 0,
+      debit: res.totals?.debit || 0,
+      credit: res.totals?.credit || 0,
+      balance: res.totals?.balance || 0,
     });
   };
 
@@ -255,7 +257,13 @@ export function LedgerAccountView() {
           slotProps={{ inputLabel: { shrink: true } }}
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          sx={{ width: 180 }}
+          sx={{
+            width: 180,
+            '& input[type="date"]::-webkit-calendar-picker-indicator': {
+              filter: (theme) =>
+                theme.palette.mode === "dark" ? "invert(1)" : "invert(0)",
+            },
+          }}
         />
 
         <TextField
@@ -264,7 +272,13 @@ export function LedgerAccountView() {
           slotProps={{ inputLabel: { shrink: true } }}
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          sx={{ width: 180 }}
+          sx={{
+            width: 180,
+            '& input[type="date"]::-webkit-calendar-picker-indicator': {
+              filter: (theme) =>
+                theme.palette.mode === "dark" ? "invert(1)" : "invert(0)",
+            },
+          }}
         />
 
         <Button
@@ -330,10 +344,18 @@ export function LedgerAccountView() {
 
       {/* Actions */}
       <Stack direction="row" spacing={2} mt={2}>
-        <Button variant="outlined" onClick={handlePrint}>
+        <Button
+          variant="outlined"
+          onClick={handlePrint}
+          sx={{ textTransform: "capitalize" }}
+        >
           Print
         </Button>
-        <Button variant="outlined" onClick={exportExcel}>
+        <Button
+          variant="outlined"
+          onClick={exportExcel}
+          sx={{ textTransform: "capitalize" }}
+        >
           Export to Excel
         </Button>
       </Stack>

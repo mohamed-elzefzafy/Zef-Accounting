@@ -1615,7 +1615,7 @@ async closeYear(year: number, userId: number | string) {
       isClosing: true,
       createdBy: { id: userId } as any,
       lastModifiedBy: { id: userId } as any,
-      entries: linesToCreate,
+      lines: linesToCreate,
     });
 
     const savedClosing = await journalRepo.save(closingEntry);
@@ -1637,68 +1637,383 @@ async closeYear(year: number, userId: number | string) {
 
 
   // 📌 افتتاح السنة
-  async openYear(newYear: number) {
-    let fiscalYear = await this.fiscalYearRepository.findOne({ where: { year: newYear } });
+  // async openYear(newYear: number) {
+  //   let fiscalYear = await this.fiscalYearRepository.findOne({ where: { year: newYear } });
 
-    if (fiscalYear && !fiscalYear.isClosed) {
-      throw new BadRequestException(`Fiscal year ${newYear} already open`);
-    }
+  //   if (fiscalYear && !fiscalYear.isClosed) {
+  //     throw new BadRequestException(`Fiscal year ${newYear} already open`);
+  //   }
 
-    const prevYear = newYear - 1;
-    const endPrev = new Date(`${prevYear}-12-31`);
+  //   const prevYear = newYear - 1;
+  //   const endPrev = new Date(`${prevYear}-12-31`);
 
-    const accounts = await this.journalEntryRepository
-      .createQueryBuilder('entry')
-      .leftJoin('entry.entries', 'line')
-      .leftJoin('line.account', 'account')
-      .select('account.id', 'accountId')
-      .addSelect('SUM(line.debit)', 'debit')
-      .addSelect('SUM(line.credit)', 'credit')
-      .where('entry.date <= :endPrev', { endPrev })
-      .groupBy('account.id')
-      .getRawMany();
+  //   const accounts = await this.journalEntryRepository
+  //     .createQueryBuilder('entry')
+  //     .leftJoin('entry.entries', 'line')
+  //     .leftJoin('line.account', 'account')
+  //     .select('account.id', 'accountId')
+  //     .addSelect('SUM(line.debit)', 'debit')
+  //     .addSelect('SUM(line.credit)', 'credit')
+  //     .where('entry.date <= :endPrev', { endPrev })
+  //     .groupBy('account.id')
+  //     .getRawMany();
 
-    if (!accounts.length) {
-      throw new NotFoundException(`No balances found for year ${prevYear}`);
-    }
+  //   if (!accounts.length) {
+  //     throw new NotFoundException(`No balances found for year ${prevYear}`);
+  //   }
 
-    // قيد الافتتاح
-    const openingEntry = this.journalEntryRepository.create({
-      date: new Date(`${newYear}-01-01`),
-      description: `Opening entry for year ${newYear}`,
-      entries: await Promise.all(
-        accounts.map(async (acc) => {
-          const account = await this.accountRepository.findOneByOrFail({
-            id: acc.accountId,
-          });
-          const balance = Number(acc.debit) - Number(acc.credit);
-          return this.journalEntryLineRepository.create({
-            account,
-            debit: balance > 0 ? balance : 0,
-            credit: balance < 0 ? -balance : 0,
-          });
-        }),
-      ),
-    });
+  //   // قيد الافتتاح
+  //   const openingEntry = this.journalEntryRepository.create({
+  //     date: new Date(`${newYear}-01-01`),
+  //     description: `Opening entry for year ${newYear}`,
+  //     entries: await Promise.all(
+  //       accounts.map(async (acc) => {
+  //         const account = await this.accountRepository.findOneByOrFail({
+  //           id: acc.accountId,
+  //         });
+  //         const balance = Number(acc.debit) - Number(acc.credit);
+  //         return this.journalEntryLineRepository.create({
+  //           account,
+  //           debit: balance > 0 ? balance : 0,
+  //           credit: balance < 0 ? -balance : 0,
+  //         });
+  //       }),
+  //     ),
+  //   });
 
-    await this.journalEntryRepository.save(openingEntry);
+  //   await this.journalEntryRepository.save(openingEntry);
 
-    // نضيف السنة الجديدة لو مش موجودة
-    if (!fiscalYear) {
-      fiscalYear = this.fiscalYearRepository.create({
-        year: newYear,
-        isClosed: false,
-      });
-    } else {
-      fiscalYear.isClosed = false;
-      fiscalYear.closedAt = null;
-      fiscalYear.closedBy = null;
-    }
+  //   // نضيف السنة الجديدة لو مش موجودة
+  //   if (!fiscalYear) {
+  //     fiscalYear = this.fiscalYearRepository.create({
+  //       year: newYear,
+  //       isClosed: false,
+  //     });
+  //   } else {
+  //     fiscalYear.isClosed = false;
+  //     fiscalYear.closedAt = null;
+  //     fiscalYear.closedBy = null;
+  //   }
 
-    await this.fiscalYearRepository.save(fiscalYear);
+  //   await this.fiscalYearRepository.save(fiscalYear);
 
-    return { message: 'Opening entry created', newYear };
+  //   return { message: 'Opening entry created', newYear };
+  // }
+
+//   async openYear(newYear: number) {
+//   let fiscalYear = await this.fiscalYearRepository.findOne({ where: { year: newYear } });
+
+//   if (fiscalYear && fiscalYear.isClosed) {
+//     throw new BadRequestException(`Fiscal year ${newYear} has been closed`);
+//   }
+
+//   const prevYear = newYear - 1;
+//   const endPrev = new Date(`${prevYear}-12-31`);
+
+//   const accounts = await this.journalEntryRepository
+//     .createQueryBuilder('entry')
+//     .leftJoin('entry.entries', 'line')
+//     .leftJoin('line.account', 'account')
+//     .select('account.id', 'accountId')
+//     .addSelect('SUM(line.debit)', 'debit')
+//     .addSelect('SUM(line.credit)', 'credit')
+//     .where('entry.date <= :endPrev', { endPrev })
+//     .groupBy('account.id')
+//     .getRawMany();
+
+//   if (!accounts.length) {
+//     throw new NotFoundException(`No balances found for year ${prevYear}`);
+//   }
+
+//   // قيد الافتتاح
+//   const openingLines = await Promise.all(
+//     accounts.map(async (acc) => {
+//       const account = await this.accountRepository.findOneByOrFail({
+//         id: acc.accountId,
+//       });
+
+//       const debit = Number(acc.debit) || 0;
+//       const credit = Number(acc.credit) || 0;
+//       const balance = debit - credit;
+
+//       if (balance === 0) {
+//         return null; // مفيش رصيد
+//       }
+
+//       return this.journalEntryLineRepository.create({
+//         account,
+//         debit: balance > 0 ? balance : 0,
+//         credit: balance < 0 ? -balance : 0,
+//       });
+//     }),
+//   );
+
+//   const filteredLines = openingLines.filter((line) => line !== null);
+
+//   if (!filteredLines.length) {
+//     throw new NotFoundException(`No opening balances found for year ${newYear}`);
+//   }
+
+//   const openingEntry = this.journalEntryRepository.create({
+//     date: new Date(`${newYear}-01-01`),
+//     description: `Opening entry for year ${newYear}`,
+//     entries: filteredLines,
+//   });
+
+//   await this.journalEntryRepository.save(openingEntry);
+
+//   // نضيف السنة الجديدة لو مش موجودة
+//   if (!fiscalYear) {
+//     fiscalYear = this.fiscalYearRepository.create({
+//       year: newYear,
+//       isClosed: false,
+//     });
+//   } else {
+//     fiscalYear.isClosed = false;
+//     fiscalYear.closedAt = null;
+//     fiscalYear.closedBy = null;
+//   }
+
+//   await this.fiscalYearRepository.save(fiscalYear);
+
+//   return { message: 'Opening entry created', newYear };
+// }
+
+// async openYear(newYear: number) {
+//   let fiscalYear = await this.fiscalYearRepository.findOne({ where: { year: newYear } });
+
+//  if (fiscalYear && fiscalYear.isClosed) {
+//     throw new BadRequestException(`Fiscal year ${newYear} has been closed`);
+//    }
+
+//   const prevYear = newYear - 1;
+//   const endPrev = new Date(`${prevYear}-12-31`);
+
+//   // الأرصدة الختامية للسنة السابقة
+//   const accounts = await this.journalEntryRepository
+//     .createQueryBuilder('entry')
+//     .leftJoin('entry.entries', 'line')
+//     .leftJoin('line.account', 'account')
+//     .select('account.id', 'accountId')
+//     .addSelect('SUM(line.debit)', 'debit')
+//     .addSelect('SUM(line.credit)', 'credit')
+//     .where('entry.date <= :endPrev', { endPrev })
+//     .groupBy('account.id')
+//     .getRawMany();
+
+//   if (!accounts.length) {
+//     throw new NotFoundException(`No balances found for year ${prevYear}`);
+//   }
+
+//   return await this.journalEntryRepository.manager.transaction(async (manager) => {
+//     // 1️⃣ نزود القيود بتاعة يناير بس في السنة الجديدة
+//     await manager
+//       .createQueryBuilder()
+//       .update('journal_entries')
+//       .set({ sequenceNumber: () => `"sequenceNumber" + 1` })
+//       .where('EXTRACT(YEAR FROM date) = :year', { year: newYear })
+//       .andWhere('EXTRACT(MONTH FROM date) = 1') // ⬅️ يناير بس
+//       .execute();
+
+//     // 2️⃣ قيد الافتتاح برقم 1
+//     const openingEntry = manager.create(JournalEntryEntity, {
+//       date: new Date(`${newYear}-01-01`),
+//       description: `Opening entry for year ${newYear}`,
+//       sequenceNumber: 1,
+//       entries: await Promise.all(
+//         accounts.map(async (acc) => {
+//           const account = await this.accountRepository.findOneByOrFail({
+//             id: acc.accountId,
+//           });
+//           const balance = Number(acc.debit) - Number(acc.credit);
+//           return manager.create(JournalEntryLineEntity, {
+//             account,
+//             debit: balance > 0 ? balance : 0,
+//             credit: balance < 0 ? -balance : 0,
+//           });
+//         }),
+//       ),
+//     });
+
+//     await manager.save(openingEntry);
+
+//     // 3️⃣ السنة المالية الجديدة
+//     if (!fiscalYear) {
+//       fiscalYear = this.fiscalYearRepository.create({
+//         year: newYear,
+//         isClosed: false,
+//       });
+//     } else {
+//       fiscalYear.isClosed = false;
+//       fiscalYear.closedAt = null;
+//       fiscalYear.closedBy = null;
+//     }
+
+//     await manager.save(fiscalYear);
+
+//     return { message: 'Opening entry created', newYear };
+//   });
+// }
+
+
+// async openYear(newYear: number) {
+//   let fiscalYear = await this.fiscalYearRepository.findOne({ where: { year: newYear } });
+
+//  if (fiscalYear && fiscalYear.isClosed) {
+//     throw new BadRequestException(`Fiscal year ${newYear} has been closed`);
+//   }
+//   const prevYear = newYear - 1;
+//   const endPrev = new Date(`${prevYear}-12-31`);
+
+//   const accounts = await this.journalEntryRepository
+//     .createQueryBuilder('entry')
+//     .leftJoin('entry.entries', 'line')
+//     .leftJoin('line.account', 'account')
+//     .select('account.id', 'accountId')
+//     .addSelect('SUM(line.debit)', 'debit')
+//     .addSelect('SUM(line.credit)', 'credit')
+//     .where('entry.date <= :endPrev', { endPrev })
+//     .groupBy('account.id')
+//     .getRawMany();
+
+//   if (!accounts.length) {
+//     throw new NotFoundException(`No balances found for year ${prevYear}`);
+//   }
+
+//   // 👇 sequence رقم 1 في شهر يناير
+//   const seq = 1;
+//   const code = `${newYear}-1-${seq}`;
+
+//   // ✅ قيد الافتتاح
+//   const openingEntry = this.journalEntryRepository.create({
+//     date: new Date(`${newYear}-01-01`),
+//     description: `Opening entry for year ${newYear}`,
+//     sequenceNumber: seq,
+//     code, // 👈 لازم نضيفه
+//     entries: await Promise.all(
+//       accounts.map(async (acc) => {
+//         const account = await this.accountRepository.findOneByOrFail({
+//           id: acc.accountId,
+//         });
+//         const balance = Number(acc.debit) - Number(acc.credit);
+//         return this.journalEntryLineRepository.create({
+//           account,
+//           debit: balance > 0 ? balance : 0,
+//           credit: balance < 0 ? -balance : 0,
+//         });
+//       }),
+//     ),
+//   });
+
+//   await this.journalEntryRepository.save(openingEntry);
+
+//   // ✅ نضيف السنة الجديدة أو نعيد فتحها
+//   if (!fiscalYear) {
+//     fiscalYear = this.fiscalYearRepository.create({
+//       year: newYear,
+//       isClosed: false,
+//     });
+//   } else {
+//     fiscalYear.isClosed = false;
+//     fiscalYear.closedAt = null;
+//     fiscalYear.closedBy = null;
+//   }
+
+//   await this.fiscalYearRepository.save(fiscalYear);
+
+//   return { message: 'Opening entry created', newYear, code };
+// }
+
+async openYear(newYear: number) {
+  let fiscalYear = await this.fiscalYearRepository.findOne({ where: { year: newYear } });
+
+  if (fiscalYear && fiscalYear.isClosed) {
+    throw new BadRequestException(`Fiscal year ${newYear} has been closed`);
   }
+
+  const prevYear = newYear - 1;
+  const endPrev = new Date(`${prevYear}-12-31`);
+
+  const accounts = await this.journalEntryRepository
+    .createQueryBuilder('entry')
+    .leftJoin('entry.lines', 'line')
+    .leftJoin('line.account', 'account')
+    .select('account.id', 'accountId')
+    .addSelect('SUM(line.debit)', 'debit')
+    .addSelect('SUM(line.credit)', 'credit')
+    .where('entry.date <= :endPrev', { endPrev })
+    .groupBy('account.id')
+    .getRawMany();
+
+  if (!accounts.length) {
+    throw new NotFoundException(`No balances found for year ${prevYear}`);
+  }
+
+  // 👇 sequence رقم 1 في شهر يناير
+  const seq = 1;
+  const code = `${newYear}-1-${seq}`;
+
+  // ✅ قيد الافتتاح (مع تجاهل الحسابات برصيد صفر)
+  const openingEntry = this.journalEntryRepository.create({
+    date: new Date(`${newYear}-01-01`),
+    description: `Opening entry for year ${newYear}`,
+    sequenceNumber: seq,
+    code,
+  //   entries: await Promise.all(
+  //     accounts
+  //       .map(async (acc) => {
+  //         const balance = Number(acc.debit) - Number(acc.credit);
+  //         if (balance === 0) {
+  //           return null; // تجاهل الحساب برصيد صفر
+  //         }
+  //         const account = await this.accountRepository.findOneByOrFail({
+  //           id: acc.accountId,
+  //         });
+  //         return this.journalEntryLineRepository.create({
+  //           account,
+  //           debit: balance > 0 ? balance : 0,
+  //           credit: balance < 0 ? -balance : 0,
+  //         });
+  //       })
+  //   ).then((lines) => lines.filter((line) => line !== null)), // فلترة null
+  lines: await Promise.all(
+  accounts
+    .map(async (acc) => {
+      const balance = Number(acc.debit) - Number(acc.credit);
+      if (balance === 0) {
+        return null;
+      }
+      const account = await this.accountRepository.findOneByOrFail({
+        id: acc.accountId,
+      });
+      return this.journalEntryLineRepository.create({
+        account,
+        debit: balance > 0 ? balance : 0,
+        credit: balance < 0 ? -balance : 0,
+      });
+    })
+).then((lines) => lines.filter((line) => line !== null)),
+  });
+
+  await this.journalEntryRepository.save(openingEntry);
+
+  // ✅ نضيف السنة الجديدة أو نعيد فتحها
+  if (!fiscalYear) {
+    fiscalYear = this.fiscalYearRepository.create({
+      year: newYear,
+      isClosed: false,
+    });
+  } else {
+    fiscalYear.isClosed = false;
+    fiscalYear.closedAt = null;
+    fiscalYear.closedBy = null;
+  }
+
+  await this.fiscalYearRepository.save(fiscalYear);
+
+  return { message: 'Opening entry created', newYear, code };
+}
+
 
 
   /**
