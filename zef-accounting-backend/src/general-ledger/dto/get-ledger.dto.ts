@@ -1,4 +1,5 @@
-import {  IsOptional, IsDateString, IsNumber } from 'class-validator';
+import {  IsOptional, IsDateString, IsNumber, IsEnum } from 'class-validator';
+import { JournalEntryType } from 'src/shared/enums/jornal-entries.enum';
 
 export class GetLedgerDto {
   @IsNumber()
@@ -15,4 +16,8 @@ export class GetLedgerDto {
   @IsOptional()
   @IsNumber()
   costCenter?: number;
+
+  @IsEnum(JournalEntryType)
+  @IsOptional()
+  type?: JournalEntryType = JournalEntryType.NORMAL;
 }

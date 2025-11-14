@@ -13,6 +13,7 @@ import { UserEntity } from 'src/users/entities/user.entity';
 import { AccountEntity } from 'src/chart/entities/chart.entity';
 import { CostCenterEntity } from 'src/cost-center/entities/cost-center.entity';
 import { FiscalYearEntity } from 'src/fiscal-year/entities/fiscal-year.entity';
+import { JournalEntryType } from 'src/shared/enums/jornal-entries.enum';
 
 @Entity('journal_entries')
 @Unique(['code'])
@@ -42,6 +43,13 @@ export class JournalEntryEntity {
   @ManyToOne(() => UserEntity, { eager: true, nullable: true })
   @JoinColumn({ name: 'lastModifiedBy' })
   lastModifiedBy?: UserEntity;
+
+    @Column({ 
+    type: 'enum', 
+    enum: JournalEntryType, 
+    default: JournalEntryType.NORMAL 
+  })
+  type: JournalEntryType;
 
   @OneToMany(() => JournalEntryLineEntity, (line) => line.journalEntry, {
     cascade: true,
