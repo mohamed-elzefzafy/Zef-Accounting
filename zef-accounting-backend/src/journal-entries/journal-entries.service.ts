@@ -141,86 +141,204 @@ export class JournalEntriesService {
   //   return await this.journalEntryRepository.save(entry);
   // }
 
-  async create(dto: CreateJournalEntryDto, user: JwtPayloadType) {
-    // ✅ validation: مينفعش نفس السطر يبقى فيه debit & credit
-    dto.lines.forEach((line) => {
-      if (line.debit && line.credit) {
-        throw new BadRequestException(
-          'An entry line cannot have both debit and credit amounts.',
-        );
-      }
-    });
+//   async create(dto: CreateJournalEntryDto, user: JwtPayloadType) {
+//     // ✅ validation: مينفعش نفس السطر يبقى فيه debit & credit
+//     dto.lines.forEach((line) => {
+//       if (line.debit && line.credit) {
+//         throw new BadRequestException(
+//           'An entry line cannot have both debit and credit amounts.',
+//         );
+//       }
+//     });
 
-    const entryDate = new Date(dto.date);
-    const year = entryDate.getFullYear();
+//     const entryDate = new Date(dto.date);
+    
+//     const year = entryDate.getFullYear();
 
-    // ✅ check السنة المالية
-    const fiscalYear = await this.fiscalYearService.findOne(year);
-    if (!fiscalYear) {
+    
+
+//     // ✅ check السنة المالية
+//     const fiscalYear = await this.fiscalYearService.findOne(year);
+//     if (!fiscalYear) {
+//       throw new BadRequestException(
+//         `Fiscal year ${year} is not created. Please create it first.`,
+//       );
+//     }
+//     if (fiscalYear.isClosed) {
+//       throw new BadRequestException(`Fiscal year ${year} is already closed`);
+//     }
+
+//     for (const line of dto.lines) {
+//       // لو جاي id من الـ frontend
+//       const account = await this.accountRepository.findOne({
+//         where: { id: line.account },
+//       });
+
+//       if (!account) {
+//         throw new NotFoundException(
+//           `Account with id ${line.account} not found`,
+//         );
+//       }
+
+//       if (account.isMain) {
+//         throw new BadRequestException(
+//           `Account "${account.name}" can't be used in journal entries because it is a main account`,
+//         );
+//       }
+//     }
+
+// const debitTotal = dto.lines.reduce((sum, line) => sum + (line.debit || 0), 0);
+// const creditTotal = dto.lines.reduce((sum, line) => sum + (line.credit || 0), 0);
+// if (debitTotal !== creditTotal) {
+//   throw new BadRequestException(
+//     `Total debit (${debitTotal}) must equal total credit (${creditTotal})`,
+//   );
+// }
+
+
+//     // ✅ بداية ونهاية الشهر
+//     const startOfMonth = new Date(year, entryDate.getMonth(), 1);
+//     const endOfMonth = new Date(year, entryDate.getMonth() + 1, 0);
+
+    
+
+//     // ✅ نجيب آخر قيد في نفس الشهر
+//     const lastEntry = await this.journalEntryRepository
+//       .createQueryBuilder('entry')
+//       .where('entry.date BETWEEN :start AND :end', {
+//         start: startOfMonth,
+//         end: endOfMonth,
+//       })
+//       .orderBy('entry.sequenceNumber', 'DESC')
+//       .getOne();
+
+//     const nextSeq = lastEntry ? lastEntry.sequenceNumber + 1 : 1;
+
+//     // ✅ نجهز الكيان
+//     const entry = this.journalEntryRepository.create({
+//       date: entryDate,
+//       description: dto.description,
+//       sequenceNumber: nextSeq,
+//       code: `${entryDate.getMonth() + 1}-${nextSeq}`,
+//       createdBy: { id: user.id } as any,
+//       lastModifiedBy: { id: user.id } as any,
+//       lines: dto.lines.map((line) =>
+//         this.journalEntryLineRepository.create({
+//           account: { id: line.account } as any,
+//           debit: line.debit || 0,
+//           credit: line.credit || 0,
+//           costCenter: line.costCenter ? ({ id: line.costCenter } as any) : null,
+//         }),
+//       ),
+//     });
+
+//     // ✅ نحفظ
+//     return await this.journalEntryRepository.save(entry);
+//   }
+
+
+async create(dto: CreateJournalEntryDto, user: JwtPayloadType) {
+  // ✅ validation: مينفعش نفس السطر يبقى فيه debit & credit
+  dto.lines.forEach((line) => {
+    if (line.debit && line.credit) {
       throw new BadRequestException(
-        `Fiscal year ${year} is not created. Please create it first.`,
+        'An entry line cannot have both debit and credit amounts.',
       );
     }
-    if (fiscalYear.isClosed) {
-      throw new BadRequestException(`Fiscal year ${year} is already closed`);
-    }
+  });
 
-    for (const line of dto.lines) {
-      // لو جاي id من الـ frontend
-      const account = await this.accountRepository.findOne({
-        where: { id: line.account },
-      });
+  const entryDate = new Date(dto.date);
+  const year = entryDate.getFullYear();
+  const month = entryDate.getMonth() + 1;
 
-      if (!account) {
-        throw new NotFoundException(
-          `Account with id ${line.account} not found`,
-        );
-      }
+  // ✅ check السنة المالية
+  const fiscalYear = await this.fiscalYearService.findOne(year);
+  if (!fiscalYear) {
+    throw new BadRequestException(
+      `Fiscal year ${year} is not created. Please create it first.`,
+    );
+  }
+  if (fiscalYear.isClosed) {
+    throw new BadRequestException(`Fiscal year ${year} is already closed`);
+  }
 
-      if (account.isMain) {
-        throw new BadRequestException(
-          `Account "${account.name}" can't be used in journal entries because it is a main account`,
-        );
-      }
-    }
-
-    // ✅ بداية ونهاية الشهر
-    const startOfMonth = new Date(year, entryDate.getMonth(), 1);
-    const endOfMonth = new Date(year, entryDate.getMonth() + 1, 0);
-
-    // ✅ نجيب آخر قيد في نفس الشهر
-    const lastEntry = await this.journalEntryRepository
-      .createQueryBuilder('entry')
-      .where('entry.date BETWEEN :start AND :end', {
-        start: startOfMonth,
-        end: endOfMonth,
-      })
-      .orderBy('entry.sequenceNumber', 'DESC')
-      .getOne();
-
-    const nextSeq = lastEntry ? lastEntry.sequenceNumber + 1 : 1;
-
-    // ✅ نجهز الكيان
-    const entry = this.journalEntryRepository.create({
-      date: entryDate,
-      description: dto.description,
-      sequenceNumber: nextSeq,
-      code: `${year}-${entryDate.getMonth() + 1}-${nextSeq}`,
-      createdBy: { id: user.id } as any,
-      lastModifiedBy: { id: user.id } as any,
-      lines: dto.lines.map((line) =>
-        this.journalEntryLineRepository.create({
-          account: { id: line.account } as any,
-          debit: line.debit || 0,
-          credit: line.credit || 0,
-          costCenter: line.costCenter ? ({ id: line.costCenter } as any) : null,
-        }),
-      ),
+  // ✅ validate accounts
+  for (const line of dto.lines) {
+    const account = await this.accountRepository.findOne({
+      where: { id: line.account },
     });
 
-    // ✅ نحفظ
-    return await this.journalEntryRepository.save(entry);
+    if (!account) {
+      throw new NotFoundException(
+        `Account with id ${line.account} not found`,
+      );
+    }
+
+    if (account.isMain) {
+      throw new BadRequestException(
+        `Account "${account.name}" can't be used in journal entries because it is a main account`,
+      );
+    }
   }
+
+  // ✅ balance check
+  const debitTotal = dto.lines.reduce((sum, line) => sum + (line.debit || 0), 0);
+  const creditTotal = dto.lines.reduce((sum, line) => sum + (line.credit || 0), 0);
+
+  if (debitTotal !== creditTotal) {
+    throw new BadRequestException(
+      `Total debit (${debitTotal}) must equal total credit (${creditTotal})`,
+    );
+  }
+
+  // ✅ نجيب آخر sequence في نفس الشهر والسنة (بدون مشاكل timezone)
+  const lastEntry = await this.journalEntryRepository
+    .createQueryBuilder('entry')
+    .where('EXTRACT(MONTH FROM entry.date) = :month', { month })
+    .andWhere('EXTRACT(YEAR FROM entry.date) = :year', { year })
+    .andWhere({isOpening: false}) // نتأكد إننا ما بنحسبش قيود إغلاق السنة
+    .orderBy('entry.sequenceNumber', 'DESC')
+    .getOne();
+
+  const nextSeq = lastEntry ? lastEntry.sequenceNumber + 1 : 1;
+
+  // ✅ توليد كود القيد
+  const code = `[${year}]${month}-${nextSeq}`;
+
+  // ⚠️ حماية إضافية (لو حصل race condition)
+  const existing = await this.journalEntryRepository.findOne({
+    where: { code },
+  });
+
+  if (existing) {
+    throw new BadRequestException(
+      `Journal entry code "${code}" already exists`,
+    );
+  }
+
+  // ✅ create entity
+  const entry = this.journalEntryRepository.create({
+    date: entryDate,
+    description: dto.description,
+    sequenceNumber: nextSeq,
+    code,
+    createdBy: { id: user.id } as any,
+    lastModifiedBy: { id: user.id } as any,
+    fiscalYear: { id: fiscalYear.id } as any,
+    lines: dto.lines.map((line) =>
+      this.journalEntryLineRepository.create({
+        account: { id: line.account } as any,
+        debit: line.debit || 0,
+        credit: line.credit || 0,
+        costCenter: line.costCenter
+          ? ({ id: line.costCenter } as any)
+          : null,
+      }),
+    ),
+  });
+
+  return await this.journalEntryRepository.save(entry);
+}
 
   // 📌 Find all
   // async findAll() {
@@ -233,20 +351,21 @@ export class JournalEntriesService {
   //     .exec();
   // }
 
-  async findAll() {
-    return this.journalEntryRepository.find({
-      relations: [
-        'entries',
-        'entries.account',
-        'entries.costCenter',
-        'createdBy',
-        'lastModifiedBy',
-      ],
-      order: {
-        date: 'ASC', // لو عايز الترتيب حسب التاريخ (اختياري)
-      },
-    });
-  }
+async findAll() {
+  return this.journalEntryRepository.find({
+    relations: [
+      'lines',
+      'lines.account',
+      'lines.costCenter',
+      'createdBy',
+      'lastModifiedBy',
+    ],
+    order: {
+      date: 'ASC',   // الأول حسب التاريخ
+      code: 'ASC',   // وبعدين حسب الكود
+    },
+  });
+}
 
   // 📌 Find one
   // async findOne(id: string) {

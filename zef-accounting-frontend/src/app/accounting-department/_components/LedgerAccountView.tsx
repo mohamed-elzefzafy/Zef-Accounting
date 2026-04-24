@@ -72,6 +72,7 @@ export function LedgerAccountView() {
   const selectedAccount = accounts?.find(
     (a: IAccount) => a.id.toString() === selected
   );
+console.log("rows" , rows);
 
   // ---- Print Ledger ----
   const handlePrint = () => {
@@ -119,7 +120,7 @@ export function LedgerAccountView() {
                   <td>${r.code ?? ""}</td>
                   <td>${new Date(r.date).toLocaleDateString()}</td>
                   <td>${
-                    r.costCenter ? r.costCenter.name || r.costCenter._id : "-"
+                    r.costCenter ? r.costCenter : "-"
                   }</td>
                   <td>${r.description ?? ""}</td>
                   <td>${r.debit ?? 0}</td>
@@ -178,7 +179,7 @@ export function LedgerAccountView() {
             <td>${r.entryNumber ?? r.sequenceNumber ?? ""}</td>
             <td>${new Date(r.date).toLocaleDateString()}</td>
             <td>${
-              r.costCenter ? r.costCenter.name || r.costCenter._id : "-"
+            r.costCenter ? r.costCenter : "-"
             }</td>
             <td>${r.description ?? ""}</td>
             <td>${r.debit}</td>
@@ -202,13 +203,14 @@ export function LedgerAccountView() {
     const blob = new Blob([htmll], { type: "application/vnd.ms-excel" });
     saveAs(blob, "ledger.xls");
   };
+console.log("rows" , rows);
 
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
         General Ledger
       </Typography>
-
+ 
       {/* Filters */}
       <Stack
         direction={{ xs: "column", md: "row" }}
@@ -313,7 +315,7 @@ export function LedgerAccountView() {
                 <TableCell>{r.code}</TableCell>
                 <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  {r.costCenter ? r.costCenter.name || r.costCenter._id : "-"}
+              {r.costCenter ? r.costCenter : "-"}
                 </TableCell>
                 <TableCell>{r.description}</TableCell>
                 <TableCell align="right">{r.debit}</TableCell>

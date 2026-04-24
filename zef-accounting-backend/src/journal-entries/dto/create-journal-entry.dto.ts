@@ -13,15 +13,15 @@ import {
 export class JournalEntryLineDto {
   @IsNumber()
   @IsNotEmpty()
-  account: number;
+  account!: number;
 
   @IsNumber()
   @Min(0)
-  debit: number;
+  debit!: number;
 
   @IsNumber()
   @Min(0)
-  credit: number;
+  credit!: number;
 
   @IsNumber()
   @IsOptional()
@@ -31,13 +31,13 @@ export class JournalEntryLineDto {
 export class CreateJournalEntryDto {
   @IsDateString()
   @IsNotEmpty()
-  date: string;
+  date!: string;
 
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => JournalEntryLineDto)
-  lines: JournalEntryLineDto[];
+  lines!: JournalEntryLineDto[];
 }

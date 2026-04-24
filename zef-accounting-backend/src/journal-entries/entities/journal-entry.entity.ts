@@ -19,26 +19,29 @@ import { JournalEntryType } from 'src/shared/enums/jornal-entries.enum';
 @Unique(['code'])
 export class JournalEntryEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'date' })
-  date: Date;
+  date!: Date;
 
   @Column()
-  description: string;
+  description!: string;
 
   @Column()
-  sequenceNumber: number; // رقم القيد داخل الشهر
+  sequenceNumber!: number; // رقم القيد داخل الشهر
 
   @Column()
-  code: string; // كود فريد (سنة-شهر-رقم)
+  code!: string; // كود فريد (سنة-شهر-رقم)
 
   @Column({ default: false })
-  isClosing: boolean; // ✅ علامة لو القيد خاص بالإقفال
+  isClosing!: boolean; // ✅ علامة لو القيد خاص بالإقفال
+
+    @Column({ default: false })
+  isOpening!: boolean; // ✅ علامة لو القيد خاص بالإقفال
 
   @ManyToOne(() => UserEntity, { eager: true })
   @JoinColumn({ name: 'createdBy' })
-  createdBy: UserEntity;
+  createdBy!: UserEntity;
 
   @ManyToOne(() => UserEntity, { eager: true, nullable: true })
   @JoinColumn({ name: 'lastModifiedBy' })
@@ -49,46 +52,46 @@ export class JournalEntryEntity {
     enum: JournalEntryType, 
     default: JournalEntryType.NORMAL 
   })
-  type: JournalEntryType;
+  type!: JournalEntryType;
 
   @OneToMany(() => JournalEntryLineEntity, (line) => line.journalEntry, {
     cascade: true,
     eager: true,
   })
-  lines: JournalEntryLineEntity[];
+  lines!: JournalEntryLineEntity[];
 
   @ManyToOne(() => FiscalYearEntity, (fy) => fy.journalEntries, {
     onDelete: 'CASCADE',
   })
-  fiscalYear: FiscalYearEntity;
+  fiscalYear!: FiscalYearEntity;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 @Entity('journal_entry_entries')
 export class JournalEntryLineEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @ManyToOne(() => JournalEntryEntity, (entry) => entry.lines, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'journalEntryId' })
-  journalEntry: JournalEntryEntity;
+  journalEntry!: JournalEntryEntity;
 
   @ManyToOne(() => AccountEntity, { eager: true })
   @JoinColumn({ name: 'accountId' })
-  account: AccountEntity;
+  account!: AccountEntity;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  debit: number;
+  debit!: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  credit: number;
+  credit!: number;
 
   @ManyToOne(() => CostCenterEntity, { eager: true, nullable: true })
   @JoinColumn({ name: 'costCenterId' })

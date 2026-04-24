@@ -3,7 +3,7 @@ import { JournalEntryType } from 'src/shared/enums/jornal-entries.enum';
 
 export class GetLedgerDto {
   @IsNumber()
-  accountId: number;
+  accountId!: number;
 
   @IsOptional()
   @IsDateString()
