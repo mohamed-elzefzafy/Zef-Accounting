@@ -1411,528 +1411,522 @@ export class GeneralLedgerService {
   //   };
   // }
 
-//   async getGeneralLedger(dto: GetLedgerDto) {
-//     const { accountId, startDate, endDate , costCenter} = dto;
+  //   async getGeneralLedger(dto: GetLedgerDto) {
+  //     const { accountId, startDate, endDate , costCenter} = dto;
 
-//     // 1- هات الحساب
-//     const account = await this.accountRepository.findOne({
-//       where: { id: accountId },
-//     });
-//     if (!account) {
-//       throw new NotFoundException('Account not found');
-//     }
+  //     // 1- هات الحساب
+  //     const account = await this.accountRepository.findOne({
+  //       where: { id: accountId },
+  //     });
+  //     if (!account) {
+  //       throw new NotFoundException('Account not found');
+  //     }
 
-//     // 2- تواريخ آمنة (حول الـ strings لـ Date objects)
-//     const effectiveStartDate = startDate
-//       ? new Date(startDate)
-//       : new Date(new Date().getFullYear(), 0, 1);
+  //     // 2- تواريخ آمنة (حول الـ strings لـ Date objects)
+  //     const effectiveStartDate = startDate
+  //       ? new Date(startDate)
+  //       : new Date(new Date().getFullYear(), 0, 1);
 
-//     const effectiveEndDate = endDate
-//       ? new Date(endDate)
-//       : new Date(new Date().getFullYear(), 11, 31);
+  //     const effectiveEndDate = endDate
+  //       ? new Date(endDate)
+  //       : new Date(new Date().getFullYear(), 11, 31);
 
-//     // 3- استخرج السنوات من التواريخ
-//     const startYear = effectiveStartDate.getFullYear();
-//     const endYear = effectiveEndDate.getFullYear();
+  //     // 3- استخرج السنوات من التواريخ
+  //     const startYear = effectiveStartDate.getFullYear();
+  //     const endYear = effectiveEndDate.getFullYear();
 
-//     // 4- هات السنوات المالية المطلوبة
-//     const fiscalYears = await this.fiscalYearRepository.find({
-//       where: {
-//         year: Between(startYear, endYear),
-//       },
-//       order: { year: 'ASC' },
-//     });
+  //     // 4- هات السنوات المالية المطلوبة
+  //     const fiscalYears = await this.fiscalYearRepository.find({
+  //       where: {
+  //         year: Between(startYear, endYear),
+  //       },
+  //       order: { year: 'ASC' },
+  //     });
 
-//     if (fiscalYears.length === 0) {
-//       throw new NotFoundException('No fiscal year found for the date range');
-//     }
+  //     if (fiscalYears.length === 0) {
+  //       throw new NotFoundException('No fiscal year found for the date range');
+  //     }
 
-//     // 5- احسب Opening Balance
-//     const firstFiscalYear = fiscalYears[0];
-//     const firstFiscalYearStart = new Date(firstFiscalYear.year, 0, 1);
+  //     // 5- احسب Opening Balance
+  //     const firstFiscalYear = fiscalYears[0];
+  //     const firstFiscalYearStart = new Date(firstFiscalYear.year, 0, 1);
 
-//     let openingBalance = 0;
+  //     let openingBalance = 0;
 
-//     if (effectiveStartDate > firstFiscalYearStart) {
-//       const previousEntries = await this.journalEntryRepository.find({
-//         where: {
-//           date: Between(
-//             firstFiscalYearStart,
-//             new Date(effectiveStartDate.getTime() - 24 * 60 * 60 * 1000),
-//           ),
-//         },
-//         relations: ['lines', 'lines.account'],
-//       });
- 
-//       for (const entry of previousEntries) {
-//         for (const line of entry.lines ?? []) {
-//           if (line.account.id === accountId) {
-//             openingBalance += Number(line.debit) - Number(line.credit);
-//           }
-//         }
-//       }
-//     } else {
-//       const previousEntries = await this.journalEntryRepository.find({
-//         where: {
-//           date: LessThan(firstFiscalYearStart),
-//         },
-//         relations: ['lines', 'lines.account'],
-//       });
+  //     if (effectiveStartDate > firstFiscalYearStart) {
+  //       const previousEntries = await this.journalEntryRepository.find({
+  //         where: {
+  //           date: Between(
+  //             firstFiscalYearStart,
+  //             new Date(effectiveStartDate.getTime() - 24 * 60 * 60 * 1000),
+  //           ),
+  //         },
+  //         relations: ['lines', 'lines.account'],
+  //       });
 
-//       for (const entry of previousEntries) {
-//         for (const line of entry.lines ?? []) {
-//           if (line.account.id === accountId) {
-//             openingBalance += Number(line.debit) - Number(line.credit);
-//           }
-//         }
-//       }
-//     }
+  //       for (const entry of previousEntries) {
+  //         for (const line of entry.lines ?? []) {
+  //           if (line.account.id === accountId) {
+  //             openingBalance += Number(line.debit) - Number(line.credit);
+  //           }
+  //         }
+  //       }
+  //     } else {
+  //       const previousEntries = await this.journalEntryRepository.find({
+  //         where: {
+  //           date: LessThan(firstFiscalYearStart),
+  //         },
+  //         relations: ['lines', 'lines.account'],
+  //       });
 
-//     // 6- هات القيود داخل الفترة
-//     const entries = await this.journalEntryRepository.find({
-//       where: {
-//         date: Between(effectiveStartDate, effectiveEndDate),
-//       },
-//       relations: ['lines', 'lines.account', 'lines.costCenter','lines.journalEntry', 'fiscalYear'],
-//       order: { date: 'ASC', sequenceNumber: 'ASC' },
-//     });
+  //       for (const entry of previousEntries) {
+  //         for (const line of entry.lines ?? []) {
+  //           if (line.account.id === accountId) {
+  //             openingBalance += Number(line.debit) - Number(line.credit);
+  //           }
+  //         }
+  //       }
+  //     }
 
-//     // 7- جهز التقرير
-//     const ledger: any[] = [];
-//     let runningBalance = openingBalance;
+  //     // 6- هات القيود داخل الفترة
+  //     const entries = await this.journalEntryRepository.find({
+  //       where: {
+  //         date: Between(effectiveStartDate, effectiveEndDate),
+  //       },
+  //       relations: ['lines', 'lines.account', 'lines.costCenter','lines.journalEntry', 'fiscalYear'],
+  //       order: { date: 'ASC', sequenceNumber: 'ASC' },
+  //     });
 
-//     // if (openingBalance !== 0 || effectiveStartDate > firstFiscalYearStart) {
-//     //   ledger.push({
-//     //     entryNo: 'OPEN',
-//     //     date: effectiveStartDate,
-//     //     description: 'رصيد افتتاحي / Opening Balance',
-//     //     debit: 0,
-//     //     credit: 0,
-//     //     balance: openingBalance,
-//     //     costCenter: '',
-//     //     isOpeningBalance: true,
-//     //   });
-//     // }
-// // console.log("entries" , entries);
+  //     // 7- جهز التقرير
+  //     const ledger: any[] = [];
+  //     let runningBalance = openingBalance;
 
-//     for (const entry of entries) {
-//       const filterdEntries = entry.lines?.filter(l => l.account.id === accountId && (!costCenter || l.costCenter?.id === costCenter));
-      
-//       for (const line of filterdEntries ?? []) {
-        
-//         if (line.account.id === accountId) {
-//       if (line.journalEntry.isOpening) {
-//       runningBalance += Number(line.debit) - Number(line.credit);
-//           ledger.push({
-//             entryNo: `${entry.sequenceNumber}`,
-//             date: entry.date,
-//             costCenter: "",
-//             description: "Opening Balance",
-//             code : "",
-//             debit: Number(line.debit),
-//             credit: Number(line.credit),
-//             balance: runningBalance,
-//             fiscalYear: entry.fiscalYear?.year || '',
-//             isOpeningBalance: false,
-//           });
-//       }else {
-//             runningBalance += Number(line.debit) - Number(line.credit);
-//           ledger.push({
-//             entryNo: `${entry.sequenceNumber}`,
-//             date: entry.date,
-//             costCenter: line.costCenter?.name || '',
-//             description: entry.description,
-//             code : entry.code,
-//             debit: Number(line.debit),
-//             credit: Number(line.credit),
-//             balance: runningBalance,
-//             fiscalYear: entry.fiscalYear?.year || '',
-//             isOpeningBalance: false,
-//           });
-//       }
-//         }
-//       }
-//     }
+  //     // if (openingBalance !== 0 || effectiveStartDate > firstFiscalYearStart) {
+  //     //   ledger.push({
+  //     //     entryNo: 'OPEN',
+  //     //     date: effectiveStartDate,
+  //     //     description: 'رصيد افتتاحي / Opening Balance',
+  //     //     debit: 0,
+  //     //     credit: 0,
+  //     //     balance: openingBalance,
+  //     //     costCenter: '',
+  //     //     isOpeningBalance: true,
+  //     //   });
+  //     // }
+  // // console.log("entries" , entries);
 
-//     const finalNature = runningBalance >= 0 ? 'Debit' : 'Credit';
+  //     for (const entry of entries) {
+  //       const filterdEntries = entry.lines?.filter(l => l.account.id === accountId && (!costCenter || l.costCenter?.id === costCenter));
 
-// ledger.push({
-//   entryNo: '',
-//   date: effectiveEndDate,
-//   costCenter: '',
-//   description: `Final balance  (${finalNature})`,
-//   code: '',
-//   debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
-//   credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
-//   balance: runningBalance,
-//   fiscalYear: '',
-//   isClosingBalance: true,
-// });
+  //       for (const line of filterdEntries ?? []) {
 
-//     // 8- إجماليات
-//     const totals = {
-//       debit: ledger
-//         .filter((l) => !l.isOpeningBalance)
-//         .reduce((sum, l) => sum + (l.debit || 0), 0),
-//       credit: ledger
-//         .filter((l) => !l.isOpeningBalance)
-//         .reduce((sum, l) => sum + (l.credit || 0), 0),
-//       openingBalance: openingBalance,
-//       closingBalance: runningBalance,
-//     };
+  //         if (line.account.id === accountId) {
+  //       if (line.journalEntry.isOpening) {
+  //       runningBalance += Number(line.debit) - Number(line.credit);
+  //           ledger.push({
+  //             entryNo: `${entry.sequenceNumber}`,
+  //             date: entry.date,
+  //             costCenter: "",
+  //             description: "Opening Balance",
+  //             code : "",
+  //             debit: Number(line.debit),
+  //             credit: Number(line.credit),
+  //             balance: runningBalance,
+  //             fiscalYear: entry.fiscalYear?.year || '',
+  //             isOpeningBalance: false,
+  //           });
+  //       }else {
+  //             runningBalance += Number(line.debit) - Number(line.credit);
+  //           ledger.push({
+  //             entryNo: `${entry.sequenceNumber}`,
+  //             date: entry.date,
+  //             costCenter: line.costCenter?.name || '',
+  //             description: entry.description,
+  //             code : entry.code,
+  //             debit: Number(line.debit),
+  //             credit: Number(line.credit),
+  //             balance: runningBalance,
+  //             fiscalYear: entry.fiscalYear?.year || '',
+  //             isOpeningBalance: false,
+  //           });
+  //       }
+  //         }
+  //       }
+  //     }
 
-//     return {
-//       account,
-//       ledger,
-//       totals,
-//       fiscalYears: fiscalYears.map((fy) => ({
-//         id: fy.id,
-//         year: fy.year,
-//         isClosed: fy.isClosed,
-//         closedAt: fy.closedAt,
-//       })),
-//     };
-//   }
+  //     const finalNature = runningBalance >= 0 ? 'Debit' : 'Credit';
 
+  // ledger.push({
+  //   entryNo: '',
+  //   date: effectiveEndDate,
+  //   costCenter: '',
+  //   description: `Final balance  (${finalNature})`,
+  //   code: '',
+  //   debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+  //   credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
+  //   balance: runningBalance,
+  //   fiscalYear: '',
+  //   isClosingBalance: true,
+  // });
 
-// async getGeneralLedger(dto: GetLedgerDto) {
-//   const { accountId, startDate, endDate, costCenter } = dto;
+  //     // 8- إجماليات
+  //     const totals = {
+  //       debit: ledger
+  //         .filter((l) => !l.isOpeningBalance)
+  //         .reduce((sum, l) => sum + (l.debit || 0), 0),
+  //       credit: ledger
+  //         .filter((l) => !l.isOpeningBalance)
+  //         .reduce((sum, l) => sum + (l.credit || 0), 0),
+  //       openingBalance: openingBalance,
+  //       closingBalance: runningBalance,
+  //     };
 
-//   // 1- هات الحساب
-//   const account = await this.accountRepository.findOne({
-//     where: { id: accountId },
-//   });
-//   if (!account) {
-//     throw new NotFoundException('Account not found');
-//   }
+  //     return {
+  //       account,
+  //       ledger,
+  //       totals,
+  //       fiscalYears: fiscalYears.map((fy) => ({
+  //         id: fy.id,
+  //         year: fy.year,
+  //         isClosed: fy.isClosed,
+  //         closedAt: fy.closedAt,
+  //       })),
+  //     };
+  //   }
 
-//   // 2- تواريخ آمنة
-//   const effectiveStartDate = startDate
-//     ? new Date(startDate)
-//     : new Date(new Date().getFullYear(), 0, 1);
+  // async getGeneralLedger(dto: GetLedgerDto) {
+  //   const { accountId, startDate, endDate, costCenter } = dto;
 
-//   const effectiveEndDate = endDate
-//     ? new Date(endDate)
-//     : new Date(new Date().getFullYear(), 11, 31);
+  //   // 1- هات الحساب
+  //   const account = await this.accountRepository.findOne({
+  //     where: { id: accountId },
+  //   });
+  //   if (!account) {
+  //     throw new NotFoundException('Account not found');
+  //   }
 
-//   // 3- السنوات المالية (للعرض فقط)
-//   const fiscalYears = await this.fiscalYearRepository.find({
-//     where: {
-//       year: Between(
-//         effectiveStartDate.getFullYear(),
-//         effectiveEndDate.getFullYear(),
-//       ),
-//     },
-//     order: { year: 'ASC' },
-//   });
+  //   // 2- تواريخ آمنة
+  //   const effectiveStartDate = startDate
+  //     ? new Date(startDate)
+  //     : new Date(new Date().getFullYear(), 0, 1);
 
-//   // ✅ 4- Opening Balance (الحل الصح)
-//   let openingBalance = 0;
+  //   const effectiveEndDate = endDate
+  //     ? new Date(endDate)
+  //     : new Date(new Date().getFullYear(), 11, 31);
 
-//   const previousEntries = await this.journalEntryRepository.find({
-//     where: {
-//       date: LessThan(effectiveStartDate),
-//     },
-//     relations: ['lines', 'lines.account', 'lines.costCenter'],
-//   });
+  //   // 3- السنوات المالية (للعرض فقط)
+  //   const fiscalYears = await this.fiscalYearRepository.find({
+  //     where: {
+  //       year: Between(
+  //         effectiveStartDate.getFullYear(),
+  //         effectiveEndDate.getFullYear(),
+  //       ),
+  //     },
+  //     order: { year: 'ASC' },
+  //   });
 
-//   for (const entry of previousEntries) {
-//     for (const line of entry.lines ?? []) {
-//       if (
-//         line.account.id === accountId &&
-//         (!costCenter || line.costCenter?.id === costCenter)
-//       ) {
-//         openingBalance += Number(line.debit) - Number(line.credit);
-//       }
-//     }
-//   }
+  //   // ✅ 4- Opening Balance (الحل الصح)
+  //   let openingBalance = 0;
 
-//   // 5- القيود داخل الفترة
-//   const entries = await this.journalEntryRepository.find({
-//     where: {
-//       date: Between(effectiveStartDate, effectiveEndDate),
-//     },
-//     relations: [
-//       'lines',
-//       'lines.account',
-//       'lines.costCenter',
-//       'fiscalYear',
-//     ],
-//     order: { date: 'ASC', sequenceNumber: 'ASC' },
-//   });
+  //   const previousEntries = await this.journalEntryRepository.find({
+  //     where: {
+  //       date: LessThan(effectiveStartDate),
+  //     },
+  //     relations: ['lines', 'lines.account', 'lines.costCenter'],
+  //   });
 
-//   // 6- تجهيز التقرير
-//   const ledger: any[] = [];
-//   let runningBalance = openingBalance;
+  //   for (const entry of previousEntries) {
+  //     for (const line of entry.lines ?? []) {
+  //       if (
+  //         line.account.id === accountId &&
+  //         (!costCenter || line.costCenter?.id === costCenter)
+  //       ) {
+  //         openingBalance += Number(line.debit) - Number(line.credit);
+  //       }
+  //     }
+  //   }
 
-//   // ✅ صف الرصيد الافتتاحي
-//   ledger.push({
-//     entryNo: 'OPEN',
-//     date: effectiveStartDate,
-//     costCenter: '',
-//     description: 'رصيد افتتاحي',
-//     code: '',
-//     debit: runningBalance > 0 ? runningBalance : 0,
-//     credit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
-//     balance: runningBalance,
-//     fiscalYear: '',
-//     isOpeningBalance: true,
-//   });
+  //   // 5- القيود داخل الفترة
+  //   const entries = await this.journalEntryRepository.find({
+  //     where: {
+  //       date: Between(effectiveStartDate, effectiveEndDate),
+  //     },
+  //     relations: [
+  //       'lines',
+  //       'lines.account',
+  //       'lines.costCenter',
+  //       'fiscalYear',
+  //     ],
+  //     order: { date: 'ASC', sequenceNumber: 'ASC' },
+  //   });
 
-//   // 7- إضافة القيود
+  //   // 6- تجهيز التقرير
+  //   const ledger: any[] = [];
+  //   let runningBalance = openingBalance;
 
-//   const filteredEntries = entries.filter( entry => !entry.isOpening);
-//   for (const entry of filteredEntries) {
-//     const filteredLines = entry.lines?.filter(
-//       (l) =>
-//         l.account.id === accountId &&
-//         (!costCenter || l.costCenter?.id === costCenter),
-//     );
+  //   // ✅ صف الرصيد الافتتاحي
+  //   ledger.push({
+  //     entryNo: 'OPEN',
+  //     date: effectiveStartDate,
+  //     costCenter: '',
+  //     description: 'رصيد افتتاحي',
+  //     code: '',
+  //     debit: runningBalance > 0 ? runningBalance : 0,
+  //     credit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+  //     balance: runningBalance,
+  //     fiscalYear: '',
+  //     isOpeningBalance: true,
+  //   });
 
-//     for (const line of filteredLines ?? []) {
-//       const debit = Number(line.debit) || 0;
-//       const credit = Number(line.credit) || 0;
+  //   // 7- إضافة القيود
 
-//       runningBalance += debit - credit;
+  //   const filteredEntries = entries.filter( entry => !entry.isOpening);
+  //   for (const entry of filteredEntries) {
+  //     const filteredLines = entry.lines?.filter(
+  //       (l) =>
+  //         l.account.id === accountId &&
+  //         (!costCenter || l.costCenter?.id === costCenter),
+  //     );
 
-//       ledger.push({
-//         entryNo: `${entry.sequenceNumber}`,
-//         date: entry.date,
-//         costCenter: line.costCenter?.name || '',
-//         description: entry.description,
-//         code: entry.code,
-//         debit,
-//         credit,
-//         balance: runningBalance,
-//         fiscalYear: entry.fiscalYear?.year || '',
-//         isOpeningBalance: false,
-//       });
-//     }
-//   }
+  //     for (const line of filteredLines ?? []) {
+  //       const debit = Number(line.debit) || 0;
+  //       const credit = Number(line.credit) || 0;
 
-//   // ✅ 8- الرصيد النهائي (مرة واحدة بس زي ما طلبت)
-//   const finalNature = runningBalance >= 0 ? 'Debit' : 'Credit';
+  //       runningBalance += debit - credit;
 
-//   ledger.push({
-//     entryNo: '',
-//     date: effectiveEndDate,
-//     costCenter: '',
-//     description: `Final balance (${finalNature})`,
-//     code: '',
-//     debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
-//     credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
-//     balance: runningBalance,
-//     fiscalYear: '',
-//     isClosingBalance: true,
-//   });
+  //       ledger.push({
+  //         entryNo: `${entry.sequenceNumber}`,
+  //         date: entry.date,
+  //         costCenter: line.costCenter?.name || '',
+  //         description: entry.description,
+  //         code: entry.code,
+  //         debit,
+  //         credit,
+  //         balance: runningBalance,
+  //         fiscalYear: entry.fiscalYear?.year || '',
+  //         isOpeningBalance: false,
+  //       });
+  //     }
+  //   }
 
-//   // 9- الإجماليات
-//   // const totals = {
-//   //   debit: ledger
-//   //     .filter((l) => !l.isOpeningBalance)
-//   //     .reduce((sum, l) => sum + (l.debit || 0), 0),
+  //   // ✅ 8- الرصيد النهائي (مرة واحدة بس زي ما طلبت)
+  //   const finalNature = runningBalance >= 0 ? 'Debit' : 'Credit';
 
-//   //   credit: ledger
-//   //     .filter((l) => !l.isOpeningBalance)
-//   //     .reduce((sum, l) => sum + (l.credit || 0), 0),
+  //   ledger.push({
+  //     entryNo: '',
+  //     date: effectiveEndDate,
+  //     costCenter: '',
+  //     description: `Final balance (${finalNature})`,
+  //     code: '',
+  //     debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+  //     credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
+  //     balance: runningBalance,
+  //     fiscalYear: '',
+  //     isClosingBalance: true,
+  //   });
 
-//   //   openingBalance,
-//   //   closingBalance: runningBalance,
-//   // };
+  //   // 9- الإجماليات
+  //   // const totals = {
+  //   //   debit: ledger
+  //   //     .filter((l) => !l.isOpeningBalance)
+  //   //     .reduce((sum, l) => sum + (l.debit || 0), 0),
 
+  //   //   credit: ledger
+  //   //     .filter((l) => !l.isOpeningBalance)
+  //   //     .reduce((sum, l) => sum + (l.credit || 0), 0),
 
+  //   //   openingBalance,
+  //   //   closingBalance: runningBalance,
+  //   // };
 
-//   const totals = {
-//   debit: ledger
-//     .filter((l) => !l.isOpeningBalance && !l.isClosingBalance)
-//     .reduce((sum, l) => sum + (l.debit || 0), 0),
+  //   const totals = {
+  //   debit: ledger
+  //     .filter((l) => !l.isOpeningBalance && !l.isClosingBalance)
+  //     .reduce((sum, l) => sum + (l.debit || 0), 0),
 
-//   credit: ledger
-//     .filter((l) => !l.isOpeningBalance && !l.isClosingBalance)
-//     .reduce((sum, l) => sum + (l.credit || 0), 0),
+  //   credit: ledger
+  //     .filter((l) => !l.isOpeningBalance && !l.isClosingBalance)
+  //     .reduce((sum, l) => sum + (l.credit || 0), 0),
 
-//   openingBalance,
-//   closingBalance: runningBalance,
-// };
+  //   openingBalance,
+  //   closingBalance: runningBalance,
+  // };
 
+  //   return {
+  //     account,
+  //     ledger,
+  //     totals,
+  //     fiscalYears: fiscalYears.map((fy) => ({
+  //       id: fy.id,
+  //       year: fy.year,
+  //       isClosed: fy.isClosed,
+  //       closedAt: fy.closedAt,
+  //     })),
+  //   };
+  // }
 
-//   return {
-//     account,
-//     ledger,
-//     totals,
-//     fiscalYears: fiscalYears.map((fy) => ({
-//       id: fy.id,
-//       year: fy.year,
-//       isClosed: fy.isClosed,
-//       closedAt: fy.closedAt,
-//     })),
-//   };
-// }
+  async getGeneralLedger(dto: GetLedgerDto) {
+    const { accountId, startDate, endDate, costCenter } = dto;
 
+    // 1- هات الحساب
+    const account = await this.accountRepository.findOne({
+      where: { id: accountId },
+    });
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
 
-async getGeneralLedger(dto: GetLedgerDto) {
-  const { accountId, startDate, endDate, costCenter } = dto;
+    // 2- تواريخ آمنة (fix timezone)
+    const effectiveStartDate = startDate
+      ? new Date(startDate + 'T00:00:00')
+      : new Date(new Date().getFullYear(), 0, 1);
 
-  // 1- هات الحساب
-  const account = await this.accountRepository.findOne({
-    where: { id: accountId },
-  });
-  if (!account) {
-    throw new NotFoundException('Account not found');
-  }
+    const effectiveEndDate = endDate
+      ? new Date(endDate + 'T23:59:59')
+      : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
 
-  // 2- تواريخ آمنة (fix timezone)
-  const effectiveStartDate = startDate
-    ? new Date(startDate + 'T00:00:00')
-    : new Date(new Date().getFullYear(), 0, 1);
+    // ✅ 3- منع اختلاف السنة المالية
+    const startYear = effectiveStartDate.getFullYear();
+    const endYear = effectiveEndDate.getFullYear();
 
-  const effectiveEndDate = endDate
-    ? new Date(endDate + 'T23:59:59')
-    : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
+    if (startYear !== endYear) {
+      throw new BadRequestException(
+        'startDate and endDate must be within the same fiscal year',
+      );
+    }
 
-  // ✅ 3- منع اختلاف السنة المالية
-  const startYear = effectiveStartDate.getFullYear();
-  const endYear = effectiveEndDate.getFullYear();
+    // 4- السنوات المالية (للعرض فقط)
+    const fiscalYears = await this.fiscalYearRepository.find({
+      where: { year: startYear },
+      order: { year: 'ASC' },
+    });
 
-  if (startYear !== endYear) {
-    throw new BadRequestException(
-      'startDate and endDate must be within the same fiscal year',
-    );
-  }
+    // ✅ 5- Opening Balance (صح 100%)
+    let openingBalance = 0;
 
-  // 4- السنوات المالية (للعرض فقط)
-  const fiscalYears = await this.fiscalYearRepository.find({
-    where: { year: startYear },
-    order: { year: 'ASC' },
-  });
+    const previousEntries = await this.journalEntryRepository.find({
+      where: {
+        date: LessThan(effectiveStartDate),
+      },
+      relations: [
+        'lines',
+        'lines.account',
+        'lines.costCenter',
+        'lines.journalEntry',
+      ],
+    });
 
-  // ✅ 5- Opening Balance (صح 100%)
-  let openingBalance = 0;
+    for (const entry of previousEntries) {
+      // ❌ نتجاهل قيود opening عشان متتكرر
+      if (entry.isOpening) continue;
 
-  const previousEntries = await this.journalEntryRepository.find({
-    where: {
-      date: LessThan(effectiveStartDate),
-    },
-    relations: ['lines', 'lines.account', 'lines.costCenter', 'lines.journalEntry'],
-  });
-
-  for (const entry of previousEntries) {
-    // ❌ نتجاهل قيود opening عشان متتكرر
-    if (entry.isOpening) continue;
-
-    for (const line of entry.lines ?? []) {
-      if (
-        line.account.id === accountId &&
-        (!costCenter || line.costCenter?.id === costCenter)
-      ) {
-        openingBalance += Number(line.debit) - Number(line.credit);
+      for (const line of entry.lines ?? []) {
+        if (
+          line.account.id === accountId &&
+          (!costCenter || line.costCenter?.id === costCenter)
+        ) {
+          openingBalance += Number(line.debit) - Number(line.credit);
+        }
       }
     }
-  }
 
-  // 6- القيود داخل الفترة
-  const entries = await this.journalEntryRepository.find({
-    where: {
-      date: Between(effectiveStartDate, effectiveEndDate),
-    },
-    relations: [
-      'lines',
-      'lines.account',
-      'lines.costCenter',
-      'fiscalYear',
-    ],
-    order: { date: 'ASC', sequenceNumber: 'ASC' },
-  });
+    // 6- القيود داخل الفترة
+    const entries = await this.journalEntryRepository.find({
+      where: {
+        date: Between(effectiveStartDate, effectiveEndDate),
+      },
+      relations: ['lines', 'lines.account', 'lines.costCenter', 'fiscalYear'],
+      order: { date: 'ASC', sequenceNumber: 'ASC' },
+    });
 
-  // 7- تجهيز التقرير
-  const ledger: any[] = [];
-  let runningBalance = openingBalance;
+    // 7- تجهيز التقرير
+    const ledger: any[] = [];
+    let runningBalance = openingBalance;
 
-  // ✅ صف الرصيد الافتتاحي
-  ledger.push({
-    entryNo: 'OPEN',
-    date: effectiveStartDate,
-    costCenter: '',
-    description: 'Opening Balance',
-    code: '',
-    debit: runningBalance > 0 ? runningBalance : 0,
-    credit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
-    balance: runningBalance,
-    fiscalYear: startYear,
-    isOpeningBalance: true,
-  });
+    // ✅ صف الرصيد الافتتاحي
+    ledger.push({
+      entryNo: 'OPEN',
+      date: effectiveStartDate,
+      costCenter: '',
+      description: 'Opening Balance',
+      code: '',
+      debit: runningBalance > 0 ? runningBalance : 0,
+      credit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+      balance: runningBalance,
+      fiscalYear: startYear,
+      isOpeningBalance: true,
+    });
 
-  // 8- إضافة القيود
-  const filteredEntries = entries.filter((entry) => !entry.isOpening);
-  for (const entry of filteredEntries) {
-    const filteredLines = entry.lines?.filter(
-      (l) =>
-        l.account.id === accountId &&
-        (!costCenter || l.costCenter?.id === costCenter),
-    );
+    // 8- إضافة القيود
+    const filteredEntries = entries.filter((entry) => !entry.isOpening);
+    for (const entry of filteredEntries) {
+      const filteredLines = entry.lines?.filter(
+        (l) =>
+          l.account.id === accountId &&
+          (!costCenter || l.costCenter?.id === costCenter),
+      );
 
-    for (const line of filteredLines ?? []) {
-      const debit = Number(line.debit) || 0;
-      const credit = Number(line.credit) || 0;
+      for (const line of filteredLines ?? []) {
+        const debit = Number(line.debit) || 0;
+        const credit = Number(line.credit) || 0;
 
-      runningBalance += debit - credit;
+        runningBalance += debit - credit;
 
-      ledger.push({
-        entryNo: `${entry.sequenceNumber}`,
-        date: entry.date,
-        costCenter: line.costCenter?.name || '',
-        description: entry.description,
-        code: entry.code,
-        debit,
-        credit,
-        balance: runningBalance,
-        fiscalYear: entry.fiscalYear?.year || '',
-        isOpeningBalance: false,
-      });
+        ledger.push({
+          entryNo: `${entry.sequenceNumber}`,
+          date: entry.date,
+          costCenter: line.costCenter?.name || '',
+          description: line.description,
+          code: entry.code,
+          debit,
+          credit,
+          balance: runningBalance,
+          fiscalYear: entry.fiscalYear?.year || '',
+          isOpeningBalance: false,
+        });
+      }
     }
+
+    // ✅ 9- الرصيد النهائي
+    const finalNature = runningBalance > 0 ? '(Debit)' : runningBalance < 0 ? '(Credit)' : "";
+
+    ledger.push({
+      entryNo: '',
+      date: effectiveEndDate,
+      costCenter: '',
+      description: `Closing Balance   ${finalNature}`,
+      code: '',
+      debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+      credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
+      balance: "",
+      fiscalYear: startYear,
+      isClosingBalance: true,
+    });
+
+    // 10- الإجماليات
+    const totals = {
+      debit: ledger
+        // .filter((l) => !l.isOpeningBalance)
+        .reduce((sum, l) => sum + (l.debit || 0), 0),
+
+      credit: ledger
+        // .filter((l) => !l.isOpeningBalance)
+        .reduce((sum, l) => sum + (l.credit || 0), 0),
+
+      openingBalance,
+      closingBalance: runningBalance,
+    };
+
+    return {
+      account,
+      ledger,
+      totals,
+      fiscalYears: fiscalYears.map((fy) => ({
+        id: fy.id,
+        year: fy.year,
+        isClosed: fy.isClosed,
+        closedAt: fy.closedAt,
+      })),
+    };
   }
-
-  // ✅ 9- الرصيد النهائي
-  const finalNature = runningBalance >= 0 ? 'Debit' : 'Credit';
-
-  ledger.push({
-    entryNo: '',
-    date: effectiveEndDate,
-    costCenter: '',
-    description: `Final balance (${finalNature})`,
-    code: '',
-    debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
-    credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
-    balance: runningBalance,
-    fiscalYear: startYear,
-    isClosingBalance: true,
-  });
-
-  // 10- الإجماليات
-  const totals = {
-    debit: ledger
-      .filter((l) => !l.isOpeningBalance)
-      .reduce((sum, l) => sum + (l.debit || 0), 0),
-
-    credit: ledger
-      .filter((l) => !l.isOpeningBalance)
-      .reduce((sum, l) => sum + (l.credit || 0), 0),
-
-    openingBalance,
-    closingBalance: runningBalance,
-  };
-
-  return {
-    account,
-    ledger,
-    totals,
-    fiscalYears: fiscalYears.map((fy) => ({
-      id: fy.id,
-      year: fy.year,
-      isClosed: fy.isClosed,
-      closedAt: fy.closedAt,
-    })),
-  };
 }
-}
- 

@@ -87,6 +87,9 @@ export class JournalEntryLineEntity {
   @JoinColumn({ name: 'accountId' })
   account!: AccountEntity;
 
+  @Column()
+  description!: string;
+
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   debit!: number;
 

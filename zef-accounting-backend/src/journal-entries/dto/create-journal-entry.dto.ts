@@ -15,6 +15,9 @@ export class JournalEntryLineDto {
   @IsNotEmpty()
   account!: number;
 
+  @IsOptional()
+  description!: string ;
+
   @IsNumber()
   @Min(0)
   debit!: number;

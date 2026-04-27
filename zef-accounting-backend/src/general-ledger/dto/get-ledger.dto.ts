@@ -17,7 +17,7 @@ export class GetLedgerDto {
   @IsNumber()
   costCenter?: number;
 
-  @IsEnum(JournalEntryType)
-  @IsOptional()
-  type?: JournalEntryType = JournalEntryType.NORMAL;
+  // @IsEnum(JournalEntryType)
+  // @IsOptional()
+  // type?: JournalEntryType = JournalEntryType.NORMAL;
 }

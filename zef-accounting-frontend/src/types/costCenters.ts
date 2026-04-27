@@ -4,7 +4,7 @@ export interface ICostCenter {
   id: number; 
   name: string;
   type: CostCenterType;
-  description?: string;
+  description?: string | null;
   active: boolean;
   createdAt?: Date;
   updatedAt?: Date;
