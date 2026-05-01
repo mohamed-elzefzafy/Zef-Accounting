@@ -11,14 +11,14 @@ import { Type } from 'class-transformer';
 export class CreateAccountDto {
   @IsNotEmpty()
   @IsString()
-  name: string;
+  name!: string;
 
   @IsNotEmpty()
   @IsString()
   @IsEnum(AccountType, {
     message: 'Type must be one of Asset, Liability, Equity, Revenue, Expense',
   })
-  type: AccountType;
+  type!: AccountType;
 
   @IsNotEmpty()
   @IsNumber()

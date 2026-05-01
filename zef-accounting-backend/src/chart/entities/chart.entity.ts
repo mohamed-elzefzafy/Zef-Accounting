@@ -19,20 +19,20 @@ export enum AccountType {
 @Entity('accounts')
 export class AccountEntity {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
   
   @Column({ type: 'varchar', nullable: false })
-  name: string;
+  name!: string;
 
   @Column({
     type: 'enum',
     enum: AccountType,
     nullable: false,
   })
-  type: AccountType;
+  type!: AccountType;
 
   @Column({ type: 'varchar', nullable: true })
-  accountCode: string;
+  accountCode!: string;
 
   // self relation (parent account)
   @ManyToOne(() => AccountEntity, (account) => account.children, {
@@ -45,14 +45,14 @@ export class AccountEntity {
   children?: AccountEntity[];
 
   @Column({ type: 'boolean', default: false })
-  isMain: boolean;
+  isMain!: boolean;
 
   @Column({ type: 'boolean', default: true })
-  isSub: boolean;
+  isSub!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

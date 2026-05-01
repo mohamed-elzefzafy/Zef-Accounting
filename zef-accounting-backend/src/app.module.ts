@@ -23,6 +23,8 @@ import {
 import { CostCenterEntity } from './cost-center/entities/cost-center.entity';
 import { FiscalYearModule } from './fiscal-year/fiscal-year.module';
 import { FiscalYearEntity } from './fiscal-year/entities/fiscal-year.entity';
+import { OpeningBalanceModule } from './opening-balance/opening-balance.module';
+import { OpeningBalanceEntity } from './opening-balance/entities/opening-balance.entity';
 
 @Module({
   imports: [
@@ -60,7 +62,8 @@ import { FiscalYearEntity } from './fiscal-year/entities/fiscal-year.entity';
           JournalEntryEntity,
           JournalEntryLineEntity,
           CostCenterEntity,
-          FiscalYearEntity
+          FiscalYearEntity,
+          OpeningBalanceEntity, // Add your entities here
         ], // Add your entities here
         synchronize: true, // Disable in production to avoid unintended schema changes
         retryAttempts: 3,
@@ -79,6 +82,7 @@ import { FiscalYearEntity } from './fiscal-year/entities/fiscal-year.entity';
     GeneralLedgerModule,
     JournalEntriesModule,
     FiscalYearModule,
+    OpeningBalanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

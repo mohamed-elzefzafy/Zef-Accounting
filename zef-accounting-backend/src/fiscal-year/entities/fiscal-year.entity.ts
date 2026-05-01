@@ -28,6 +28,9 @@ export class FiscalYearEntity {
   @JoinColumn({ name: 'closedBy' })
   closedBy!: UserEntity | null;
 
+  @Column({ default: false })
+  isStartYear!: boolean;
+
   @OneToMany(() => JournalEntryEntity, (entry) => entry.fiscalYear)
   journalEntries!: JournalEntryEntity[];
 }

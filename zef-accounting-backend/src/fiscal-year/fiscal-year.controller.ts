@@ -79,6 +79,11 @@ export class FiscalYearController {
     return this.fiscalYearService.create(dto);
   }
 
+    @Post("create-irst-year")
+  async createFirstYear(@Body() dto: CreateFiscalYearDto) {
+    return this.fiscalYearService.createFirstYear(dto);
+  }
+
   @Get()
   async findAll() {
     return this.fiscalYearService.findAll();

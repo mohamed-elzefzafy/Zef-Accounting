@@ -1,43 +1,78 @@
 "use client";
-import { ReactNode } from 'react';
-import {  Category, Dashboard, Group, Note, Reviews, School} from '@mui/icons-material';
-import { Box } from '@mui/material';
-import DrawerComponent from './_components/DrawerComponent';
-import { TopNav } from './_components/TopNav';
-import Header from '../components/Header';
+import { ReactNode } from "react";
+import {
+  Category,
+  Dashboard,
+  School,
+  AccountBalance,
+  ReceiptLong,
+  Assessment,
+  Settings,
+  Group,
+} from "@mui/icons-material";
+import { Box } from "@mui/material";
+// import TopNavBar, { NavItem } from "./_components/TopNav";
+import Header from "../components/Header";
+import TopNavBar, { NavItem } from "./_components/TopNavBar";
 
-
-
-
-const InstructorDashboardLayout = ({ children }: { children: ReactNode }) => {
-
-
-  const InstructorDashboardArrayList = [
-  { text:"Dashboard", icon: <Dashboard />, path: "/accounting-department" },
-  { text: "Create Journal Entry", icon: <School/>, path: "/accounting-department/journal" },
-  { text: "General Ledger", icon: <Category/>, path: "/accounting-department/ledger" },
+const navItems: NavItem[] = [
+  {
+    text: "Dashboard",
+    icon: <Dashboard />,
+    path: "/accounting-department",
+  },
+  {
+    text: "Journals",
+    icon: <School />,
+    children: [
+      { text: "Create Journal Entry", icon: <School />, path: "/accounting-department/journal" },
+      { text: "Journal List", icon: <ReceiptLong />, path: "/accounting-department/journal/list" },
+    ],
+  },
+  {
+    text: "Ledger",
+    icon: <Category />,
+    children: [
+      { text: "General Ledger", icon: <Category />, path: "/accounting-department/ledger" },
+      { text: "Trial Balance", icon: <AccountBalance />, path: "/accounting-department/ledger/trial-balance" },
+    ],
+  },
+  {
+    text: "Reports",
+    icon: <Assessment />,
+    children: [
+      { text: "Income Statement", icon: <Assessment />, path: "/accounting-department/reports/income" },
+      { text: "Balance Sheet", icon: <AccountBalance />, path: "/accounting-department/reports/balance-sheet" },
+    ],
+  },
+  {
+    text: "Users",
+    icon: <Group />,
+    path: "/accounting-department/users",
+  },
+  {
+    text: "Settings",
+    icon: <Settings />,
+    path: "/accounting-department/settings",
+  },
 ];
 
-
+const InstructorDashboardLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <Box sx={{ display: 'flex', width: '100%', minHeight: '100vh' }}>
-      {/* <TopNav/> */}
-      <Header/>
-  <DrawerComponent drawerOptions={InstructorDashboardArrayList} />
-
-  <Box
-    component="main"
-    sx={{
-      flexGrow: 1,            // this makes sure the main content takes remaining space
-      overflowX: 'hidden',    // optional: prevents horizontal scroll
-      overflowY: 'auto',      // optional: allow vertical scrolling
-      maxWidth: '100%',       // prevents growing too wide
-    }}
-  >
-    {children}
-  </Box>
-</Box>
-
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <Header />
+      <TopNavBar navItems={navItems} />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          overflowX: "hidden",
+          overflowY: "auto",
+        }}
+      >
+        {children}
+      </Box>
+    </Box>
   );
 };
 
