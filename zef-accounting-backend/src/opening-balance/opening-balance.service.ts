@@ -813,132 +813,422 @@ export class OpeningBalanceService {
   // ✅ توليد الـ Opening Balance تلقائياً من قيود السنة السابقة
   // بيتستدعى تلقائياً من closeYear — مش من المستخدم مباشرةً
   // =========================================================
+  // async generate(targetYear: number) {
+  //   const prevYear = targetYear - 1;
+
+  //   // ✅ تحقق إن السنة السابقة موجودة ومتقفلة
+  //   const prevFiscalYear = await this.fiscalYearService.findOne(prevYear);
+  //   if (!prevFiscalYear) {
+  //     throw new NotFoundException(`Fiscal year ${prevYear} not found`);
+  //   }
+  //   if (!prevFiscalYear.isClosed) {
+  //     throw new BadRequestException(
+  //       `Fiscal year ${prevYear} must be closed before generating opening balance for ${targetYear}`,
+  //     );
+  //   }
+
+  //   // ✅ تحقق إن السنة الجديدة موجودة
+  //   const targetFiscalYear = await this.fiscalYearService.findOne(targetYear);
+  //   if (!targetFiscalYear) {
+  //     throw new NotFoundException(
+  //       `Fiscal year ${targetYear} not found. Please create it first.`,
+  //     );
+  //   }
+
+  //   // =========================================================
+  //   // ✅ نجيب سطور القيود من السنة السابقة
+  //   // بس الحسابات الدائمة (Asset, Liability, Equity)
+  //   // ونستبعد قيود الإقفال
+  //   // ✅ الـ double quotes ضرورية عشان PostgreSQL يحافظ على الـ case
+  //   // =========================================================
+  //   const lines = await this.journalLineRepository
+  //     .createQueryBuilder('line')
+  //     .innerJoin('line.journalEntry', 'entry')
+  //     .innerJoin('entry.fiscalYear', 'fy')
+  //     .innerJoin('line.account', 'account')
+  //     .leftJoin('line.costCenter', 'costCenter')
+  //     .select([
+  //       'account.id    AS "accountId"',
+  //       'line.debit    AS "lineDebit"',
+  //       'line.credit   AS "lineCredit"',
+  //       'costCenter.id AS "costCenterId"',
+  //     ])
+  //     .where('fy.year = :year', { year: prevYear })
+  //     .andWhere('entry.isClosing = false')
+  //     .andWhere('account.type IN (:...types)', {
+  //       types: [AccountType.Asset, AccountType.Liability, AccountType.Equity],
+  //     })
+  //     .getRawMany();
+
+  //   if (!lines.length) {
+  //     return {
+  //       message: `No permanent account balances found for year ${prevYear}`,
+  //       totalAccounts: 0,
+  //     };
+  //   }
+
+  //   // =========================================================
+  //   // ✅ نجمع الأرصدة على مستوى (حساب + مركز تكلفة)
+  //   // =========================================================
+  //   type BalanceEntry = {
+  //     accountId: number;
+  //     costCenterId: number | null;
+  //     debit: number;
+  //     credit: number;
+  //   };
+
+  //   const balanceMap = new Map<string, BalanceEntry>();
+
+  //   for (const line of lines) {
+  //     const accountId   = Number(line.accountId);
+  //     const costCenterId = line.costCenterId ? Number(line.costCenterId) : null;
+
+  //     if (isNaN(accountId) || accountId === 0) continue;
+
+  //     const key = `${accountId}_${costCenterId ?? 'null'}`;
+
+  //     if (!balanceMap.has(key)) {
+  //       balanceMap.set(key, { accountId, costCenterId, debit: 0, credit: 0 });
+  //     }
+
+  //     const entry = balanceMap.get(key)!;
+  //     entry.debit  += parseFloat(line.lineDebit)  || 0;
+  //     entry.credit += parseFloat(line.lineCredit) || 0;
+  //   }
+
+  //   // =========================================================
+  //   // ✅ نحذف الـ opening balance المولد تلقائياً القديم (إعادة توليد)
+  //   // لكن نحافظ على اللي أدخله المحاسب يدوياً (isGenerated = false)
+  //   // =========================================================
+  //   await this.openingBalanceRepository.delete({
+  //     fiscalYear: { id: targetFiscalYear.id },
+  //     isGenerated: true,
+  //   });
+
+  //   // =========================================================
+  //   // ✅ نخزن الأرصدة الجديدة
+  //   // =========================================================
+  //   const toSave: OpeningBalanceEntity[] = [];
+
+  //   for (const [, value] of balanceMap) {
+  //     if (value.debit === 0 && value.credit === 0) continue;
+
+  //     const ob = this.openingBalanceRepository.create({
+  //       account:    { id: value.accountId } as any,
+  //       fiscalYear: { id: targetFiscalYear.id } as any,
+  //       costCenter: value.costCenterId ? ({ id: value.costCenterId } as any) : null,
+  //       debit:      value.debit,
+  //       credit:     value.credit,
+  //       isGenerated: true,
+  //     });
+
+  //     toSave.push(ob);
+  //   }
+
+  //   if (!toSave.length) {
+  //     return {
+  //       message: `All account balances are zero for year ${prevYear}`,
+  //       totalAccounts: 0,
+  //     };
+  //   }
+
+  //   await this.openingBalanceRepository.save(toSave);
+
+  //   return {
+  //     message: `Opening balance for year ${targetYear} generated successfully`,
+  //     totalAccounts: toSave.length,
+  //   };
+  // }
+
+
+  // async generate(targetYear: number) {
+  //   const prevYear = targetYear - 1;
+
+  //   const prevFiscalYear = await this.fiscalYearService.findOne(prevYear);
+  //   if (!prevFiscalYear) {
+  //     throw new NotFoundException(`Fiscal year ${prevYear} not found`);
+  //   }
+  //   if (!prevFiscalYear.isClosed) {
+  //     throw new BadRequestException(
+  //       `Fiscal year ${prevYear} must be closed before generating opening balance for ${targetYear}`,
+  //     );
+  //   }
+
+  //   const targetFiscalYear = await this.fiscalYearService.findOne(targetYear);
+  //   if (!targetFiscalYear) {
+  //     throw new NotFoundException(
+  //       `Fiscal year ${targetYear} not found. Please create it first.`,
+  //     );
+  //   }
+
+  //   // =========================================================
+  //   // ✅ Query 1 - الحركات العادية (Asset, Liability, Equity)
+  //   // بدون قيود الإقفال
+  //   // =========================================================
+  //   const normalLines = await this.journalLineRepository
+  //     .createQueryBuilder('line')
+  //     .innerJoin('line.journalEntry', 'entry')
+  //     .innerJoin('entry.fiscalYear', 'fy')
+  //     .innerJoin('line.account', 'account')
+  //     .leftJoin('line.costCenter', 'costCenter')
+  //     .select([
+  //       'account.id    AS "accountId"',
+  //       'line.debit    AS "lineDebit"',
+  //       'line.credit   AS "lineCredit"',
+  //       'costCenter.id AS "costCenterId"',
+  //     ])
+  //     .where('fy.year = :year', { year: prevYear })
+  //     .andWhere('entry.isClosing = false')
+  //     .andWhere('account.type IN (:...types)', {
+  //       types: [AccountType.Asset, AccountType.Liability, AccountType.Equity],
+  //     })
+  //     .getRawMany();
+
+  //   // =========================================================
+  //   // ✅ Query 2 - قيود الإقفال لحسابات Equity فقط
+  //   // (Income Summary و Retained Earnings بيتحركوا هنا فقط)
+  //   // =========================================================
+  //   const closingLines = await this.journalLineRepository
+  //     .createQueryBuilder('line')
+  //     .innerJoin('line.journalEntry', 'entry')
+  //     .innerJoin('entry.fiscalYear', 'fy')
+  //     .innerJoin('line.account', 'account')
+  //     .leftJoin('line.costCenter', 'costCenter')
+  //     .select([
+  //       'account.id    AS "accountId"',
+  //       'line.debit    AS "lineDebit"',
+  //       'line.credit   AS "lineCredit"',
+  //       'costCenter.id AS "costCenterId"',
+  //     ])
+  //     .where('fy.year = :year', { year: prevYear })
+  //     .andWhere('entry.isClosing = true')
+  //     .andWhere('account.type = :type', { type: AccountType.Equity })
+  //     .getRawMany();
+
+  //   // =========================================================
+  //   // ✅ ندمج الـ queries مع بعض
+  //   // =========================================================
+  //   const allLines = [...normalLines, ...closingLines];
+
+  //   if (!allLines.length) {
+  //     return {
+  //       message: `No permanent account balances found for year ${prevYear}`,
+  //       totalAccounts: 0,
+  //     };
+  //   }
+
+  //   // =========================================================
+  //   // ✅ نجمع الأرصدة على مستوى (حساب + مركز تكلفة)
+  //   // =========================================================
+  //   type BalanceEntry = {
+  //     accountId: number;
+  //     costCenterId: number | null;
+  //     debit: number;
+  //     credit: number;
+  //   };
+
+  //   const balanceMap = new Map<string, BalanceEntry>();
+
+  //   for (const line of allLines) {
+  //     const accountId = Number(line.accountId);
+  //     const costCenterId = line.costCenterId ? Number(line.costCenterId) : null;
+
+  //     if (isNaN(accountId) || accountId === 0) continue;
+
+  //     const key = `${accountId}_${costCenterId ?? 'null'}`;
+
+  //     if (!balanceMap.has(key)) {
+  //       balanceMap.set(key, { accountId, costCenterId, debit: 0, credit: 0 });
+  //     }
+
+  //     const entry = balanceMap.get(key)!;
+  //     entry.debit  += parseFloat(line.lineDebit)  || 0;
+  //     entry.credit += parseFloat(line.lineCredit) || 0;
+  //   }
+
+  //   // =========================================================
+  //   // ✅ نحذف الـ opening balance المولد تلقائياً القديم
+  //   // =========================================================
+  //   await this.openingBalanceRepository.delete({
+  //     fiscalYear: { id: targetFiscalYear.id },
+  //     isGenerated: true,
+  //   });
+
+  //   // =========================================================
+  //   // ✅ نخزن الأرصدة الجديدة
+  //   // =========================================================
+  //   const toSave: OpeningBalanceEntity[] = [];
+
+  //   for (const [, value] of balanceMap) {
+  //     if (value.debit === 0 && value.credit === 0) continue;
+
+  //     const ob = this.openingBalanceRepository.create({
+  //       account:    { id: value.accountId } as any,
+  //       fiscalYear: { id: targetFiscalYear.id } as any,
+  //       costCenter: value.costCenterId ? ({ id: value.costCenterId } as any) : null,
+  //       debit:      value.debit,
+  //       credit:     value.credit,
+  //       isGenerated: true,
+  //     });
+
+  //     toSave.push(ob);
+  //   }
+
+  //   if (!toSave.length) {
+  //     return {
+  //       message: `All account balances are zero for year ${prevYear}`,
+  //       totalAccounts: 0,
+  //     };
+  //   }
+
+  //   await this.openingBalanceRepository.save(toSave);
+
+  //   return {
+  //     message: `Opening balance for year ${targetYear} generated successfully`,
+  //     totalAccounts: toSave.length,
+  //   };
+  // }
+
+
+
   async generate(targetYear: number) {
-    const prevYear = targetYear - 1;
+  const prevYear = targetYear - 1;
 
-    // ✅ تحقق إن السنة السابقة موجودة ومتقفلة
-    const prevFiscalYear = await this.fiscalYearService.findOne(prevYear);
-    if (!prevFiscalYear) {
-      throw new NotFoundException(`Fiscal year ${prevYear} not found`);
-    }
-    if (!prevFiscalYear.isClosed) {
-      throw new BadRequestException(
-        `Fiscal year ${prevYear} must be closed before generating opening balance for ${targetYear}`,
-      );
-    }
+  // ─── Validate ─────────────────────────────────────────────
+  const prevFiscalYear = await this.fiscalYearService.findOne(prevYear);
+  if (!prevFiscalYear) {
+    throw new NotFoundException(`Fiscal year ${prevYear} not found`);
+  }
+  if (!prevFiscalYear.isClosed) {
+    throw new BadRequestException(
+      `Fiscal year ${prevYear} must be closed before generating opening balance for ${targetYear}`,
+    );
+  }
 
-    // ✅ تحقق إن السنة الجديدة موجودة
-    const targetFiscalYear = await this.fiscalYearService.findOne(targetYear);
-    if (!targetFiscalYear) {
-      throw new NotFoundException(
-        `Fiscal year ${targetYear} not found. Please create it first.`,
-      );
-    }
+  const targetFiscalYear = await this.fiscalYearService.findOne(targetYear);
+  if (!targetFiscalYear) {
+    throw new NotFoundException(
+      `Fiscal year ${targetYear} not found. Please create it first.`,
+    );
+  }
 
-    // =========================================================
-    // ✅ نجيب سطور القيود من السنة السابقة
-    // بس الحسابات الدائمة (Asset, Liability, Equity)
-    // ونستبعد قيود الإقفال
-    // ✅ الـ double quotes ضرورية عشان PostgreSQL يحافظ على الـ case
-    // =========================================================
-    const lines = await this.journalLineRepository
-      .createQueryBuilder('line')
-      .innerJoin('line.journalEntry', 'entry')
-      .innerJoin('entry.fiscalYear', 'fy')
-      .innerJoin('line.account', 'account')
-      .leftJoin('line.costCenter', 'costCenter')
-      .select([
-        'account.id    AS "accountId"',
-        'line.debit    AS "lineDebit"',
-        'line.credit   AS "lineCredit"',
-        'costCenter.id AS "costCenterId"',
-      ])
-      .where('fy.year = :year', { year: prevYear })
-      .andWhere('entry.isClosing = false')
-      .andWhere('account.type IN (:...types)', {
-        types: [AccountType.Asset, AccountType.Liability, AccountType.Equity],
-      })
-      .getRawMany();
+  // ─── Query 1: حركات عادية (Asset, Liability, Equity) ─────
+  // بدون قيود الإقفال
+  const normalLines = await this.journalLineRepository
+    .createQueryBuilder('line')
+    .innerJoin('line.journalEntry', 'entry')
+    .innerJoin('entry.fiscalYear',  'fy')
+    .innerJoin('line.account',      'account')
+    .leftJoin('line.costCenter',    'costCenter')
+    .select([
+      'account.id    AS "accountId"',
+      'line.debit    AS "lineDebit"',
+      'line.credit   AS "lineCredit"',
+      'costCenter.id AS "costCenterId"',
+    ])
+    .where('fy.year = :year',        { year: prevYear })
+    .andWhere('entry.isClosing = false')
+    .andWhere('account.type IN (:...types)', {
+      types: [AccountType.Asset, AccountType.Liability, AccountType.Equity],
+    })
+    .getRawMany();
 
-    if (!lines.length) {
-      return {
-        message: `No permanent account balances found for year ${prevYear}`,
-        totalAccounts: 0,
-      };
-    }
+  // ─── Query 2: قيود الإقفال لـ Equity فقط ─────────────────
+  // ✅ Income Summary و Retained Earnings بيتحركوا هنا فقط
+  const closingLines = await this.journalLineRepository
+    .createQueryBuilder('line')
+    .innerJoin('line.journalEntry', 'entry')
+    .innerJoin('entry.fiscalYear',  'fy')
+    .innerJoin('line.account',      'account')
+    .leftJoin('line.costCenter',    'costCenter')
+    .select([
+      'account.id    AS "accountId"',
+      'line.debit    AS "lineDebit"',
+      'line.credit   AS "lineCredit"',
+      'costCenter.id AS "costCenterId"',
+    ])
+    .where('fy.year = :year',        { year: prevYear })
+    .andWhere('entry.isClosing = true')
+    .andWhere('account.type = :type', { type: AccountType.Equity })
+    .getRawMany();
 
-    // =========================================================
-    // ✅ نجمع الأرصدة على مستوى (حساب + مركز تكلفة)
-    // =========================================================
-    type BalanceEntry = {
-      accountId: number;
-      costCenterId: number | null;
-      debit: number;
-      credit: number;
-    };
+  // ─── دمج الـ queries ──────────────────────────────────────
+  const allLines = [...normalLines, ...closingLines];
 
-    const balanceMap = new Map<string, BalanceEntry>();
-
-    for (const line of lines) {
-      const accountId   = Number(line.accountId);
-      const costCenterId = line.costCenterId ? Number(line.costCenterId) : null;
-
-      if (isNaN(accountId) || accountId === 0) continue;
-
-      const key = `${accountId}_${costCenterId ?? 'null'}`;
-
-      if (!balanceMap.has(key)) {
-        balanceMap.set(key, { accountId, costCenterId, debit: 0, credit: 0 });
-      }
-
-      const entry = balanceMap.get(key)!;
-      entry.debit  += parseFloat(line.lineDebit)  || 0;
-      entry.credit += parseFloat(line.lineCredit) || 0;
-    }
-
-    // =========================================================
-    // ✅ نحذف الـ opening balance المولد تلقائياً القديم (إعادة توليد)
-    // لكن نحافظ على اللي أدخله المحاسب يدوياً (isGenerated = false)
-    // =========================================================
-    await this.openingBalanceRepository.delete({
-      fiscalYear: { id: targetFiscalYear.id },
-      isGenerated: true,
-    });
-
-    // =========================================================
-    // ✅ نخزن الأرصدة الجديدة
-    // =========================================================
-    const toSave: OpeningBalanceEntity[] = [];
-
-    for (const [, value] of balanceMap) {
-      if (value.debit === 0 && value.credit === 0) continue;
-
-      const ob = this.openingBalanceRepository.create({
-        account:    { id: value.accountId } as any,
-        fiscalYear: { id: targetFiscalYear.id } as any,
-        costCenter: value.costCenterId ? ({ id: value.costCenterId } as any) : null,
-        debit:      value.debit,
-        credit:     value.credit,
-        isGenerated: true,
-      });
-
-      toSave.push(ob);
-    }
-
-    if (!toSave.length) {
-      return {
-        message: `All account balances are zero for year ${prevYear}`,
-        totalAccounts: 0,
-      };
-    }
-
-    await this.openingBalanceRepository.save(toSave);
-
+  if (!allLines.length) {
     return {
-      message: `Opening balance for year ${targetYear} generated successfully`,
-      totalAccounts: toSave.length,
+      message:       `No permanent account balances found for year ${prevYear}`,
+      totalAccounts: 0,
     };
   }
+
+  // ─── تجميع الأرصدة على مستوى (حساب + مركز تكلفة) ─────────
+  type BalanceEntry = {
+    accountId:    number;
+    costCenterId: number | null;
+    debit:        number;
+    credit:       number;
+  };
+
+  const balanceMap = new Map<string, BalanceEntry>();
+
+  for (const line of allLines) {
+    const accountId    = Number(line.accountId);
+    const costCenterId = line.costCenterId ? Number(line.costCenterId) : null;
+
+    if (isNaN(accountId) || accountId === 0) continue;
+
+    const key = `${accountId}_${costCenterId ?? 'null'}`;
+
+    if (!balanceMap.has(key)) {
+      balanceMap.set(key, { accountId, costCenterId, debit: 0, credit: 0 });
+    }
+
+    const entry = balanceMap.get(key)!;
+    entry.debit  += parseFloat(line.lineDebit)  || 0;
+    entry.credit += parseFloat(line.lineCredit) || 0;
+  }
+
+  // ─── حذف الـ opening balance المولد تلقائياً القديم ───────
+  await this.openingBalanceRepository.delete({
+    fiscalYear:  { id: targetFiscalYear.id },
+    isGenerated: true,
+  });
+
+  // ─── حفظ الأرصدة الجديدة ──────────────────────────────────
+  const toSave: OpeningBalanceEntity[] = [];
+
+  for (const [, value] of balanceMap) {
+    if (value.debit === 0 && value.credit === 0) continue;
+
+    toSave.push(
+      this.openingBalanceRepository.create({
+        account:     { id: value.accountId } as any,
+        fiscalYear:  { id: targetFiscalYear.id } as any,
+        costCenter:  value.costCenterId ? ({ id: value.costCenterId } as any) : null,
+        debit:       value.debit,
+        credit:      value.credit,
+        isGenerated: true,
+      }),
+    );
+  }
+
+  if (!toSave.length) {
+    return {
+      message:       `All account balances are zero for year ${prevYear}`,
+      totalAccounts: 0,
+    };
+  }
+
+  await this.openingBalanceRepository.save(toSave);
+
+  return {
+    message:       `Opening balance for year ${targetYear} generated successfully`,
+    totalAccounts: toSave.length,
+  };
+}
+
+
 
   // =========================================================
   // ✅ إدخال يدوي للرصيد الافتتاحي

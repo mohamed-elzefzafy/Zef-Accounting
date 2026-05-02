@@ -1767,147 +1767,762 @@ export class FiscalYearService {
 // }
 
 
+// async closeYear(year: number, userId: number | string) {
+//   return this.dataSource.transaction(async (manager) => {
+//     const fyRepo = manager.getRepository(FiscalYearEntity);
+//     const accountRepo = manager.getRepository(AccountEntity);
+//     const lineRepo = manager.getRepository(JournalEntryLineEntity);
+//     const journalRepo = manager.getRepository(JournalEntryEntity);
+
+//     const fy = await fyRepo.findOne({ where: { year } });
+
+//     if (!fy) throw new NotFoundException('Year not found');
+//     if (fy.isClosed) throw new BadRequestException('Year already closed');
+
+//     const start = new Date(year, 0, 1);
+//     const end = new Date(year, 11, 31);
+
+//     // ---------------------------------------
+//     // 🧠 Equity Parent (FIXED)
+//     // ---------------------------------------
+//     let equityParent = await accountRepo.findOne({
+//       where: {
+//         name: 'Equity',
+//         type: AccountType.Equity,
+//         isMain: true,
+//       },
+//     });
+
+//     if (!equityParent) {
+//   const topAccounts = await accountRepo.find({
+//   where: { parent: IsNull() },
+//   order: { accountCode: 'ASC' },
+// });
+//       let code = '1';
+
+//       if (topAccounts.length > 0) {
+//         const last = topAccounts[topAccounts.length - 1];
+//         code = String(parseInt(last.accountCode || '0', 10) + 1);
+//       }
+
+//       equityParent = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Equity',
+//           type: AccountType.Equity,
+//           parent: null,
+//           accountCode: code,
+//           isMain: true,
+//           isSub: false,
+//         }),
+//       );
+//     }
+
+//     // ---------------------------------------
+//     // 🧠 Child Code Generator (FIXED)
+//     // ---------------------------------------
+//     const generateChildCode = async (parentId: number) => {
+//       const parent = await accountRepo.findOne({
+//         where: { id: parentId },
+//       });
+
+//       if (!parent) {
+//         throw new BadRequestException('Parent not found');
+//       }
+
+//       const children = await accountRepo.find({
+//         where: { parent: { id: parentId } },
+//         order: { accountCode: 'ASC' },
+//       });
+
+//       if (children.length === 0) {
+//         return parent.accountCode
+//           ? `${parent.accountCode}.1`
+//           : '1';
+//       }
+
+//       const last = children[children.length - 1];
+//       const lastPart = last.accountCode.split('.').pop() ?? '0';
+//       const newNumber = parseInt(lastPart, 10) + 1;
+
+//       return parent.accountCode
+//         ? `${parent.accountCode}.${newNumber}`
+//         : `${newNumber}`;
+//     };
+
+//     // ---------------------------------------
+//     // 🧠 Income Summary
+//     // ---------------------------------------
+//     let incomeSummary = await accountRepo.findOne({
+//       where: { name: 'Income Summary' },
+//     });
+
+//     if (!incomeSummary) {
+//       const code = await generateChildCode(equityParent.id);
+
+//       incomeSummary = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Income Summary',
+//           type: AccountType.Equity,
+//           parent: equityParent,
+//           accountCode: code,
+//           isMain: false,
+//           isSub: true,
+//         }),
+//       );
+//     }
+
+//     // ---------------------------------------
+//     // 🧠 Retained Earnings
+//     // ---------------------------------------
+//     let retained = await accountRepo.findOne({
+//       where: { name: 'Retained Earnings' },
+//     });
+
+//     if (!retained) {
+//       const code = await generateChildCode(equityParent.id);
+
+//       retained = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Retained Earnings',
+//           type: AccountType.Equity,
+//           parent: equityParent,
+//           accountCode: code,
+//           isMain: false,
+//           isSub: true,
+//         }),
+//       );
+//     }
+
+//     // ---------------------------------------
+//     // 🧠 Aggregate Revenue & Expense
+//     // ---------------------------------------
+//     const aggregated = await lineRepo
+//       .createQueryBuilder('line')
+//       .leftJoin('line.journalEntry', 'je')
+//       .leftJoin('line.account', 'account')
+//       .select('account.id', 'accountId')
+//       .addSelect('account.type', 'accountType')
+//       .addSelect('SUM(line.debit)', 'debit')
+//       .addSelect('SUM(line.credit)', 'credit')
+//       .where('je.date BETWEEN :start AND :end', { start, end })
+//       .andWhere('account.type IN (:...types)', {
+//         types: [AccountType.Revenue, AccountType.Expense],
+//       })
+//       .groupBy('account.id')
+//       .addGroupBy('account.type')
+//       .getRawMany();
+
+//     const lines: JournalEntryLineEntity[] = [];
+//     let totalRevenue = 0;
+//     let totalExpense = 0;
+
+//     // ---------------------------------------
+//     // 💰 Process Accounts
+//     // ---------------------------------------
+//     for (const row of aggregated) {
+//       const accId = Number(row.accountId);
+//       const debit = Number(row.debit || 0);
+//       const credit = Number(row.credit || 0);
+//       const type = row.accountType as AccountType;
+
+//       // Revenue
+//       if (type === AccountType.Revenue) {
+//         const balance = credit - debit;
+
+//         if (balance !== 0) {
+//           totalRevenue += balance;
+
+//           lines.push(
+//             lineRepo.create({
+//               description: `Close revenue account ${accId}`,
+//               account: { id: accId } as any,
+//               debit: balance > 0 ? balance : 0,
+//               credit: balance < 0 ? -balance : 0,
+//             }),
+//             lineRepo.create({
+//               description: 'Transfer to Income Summary',
+//               account: { id: incomeSummary.id } as any,
+//               debit: balance < 0 ? -balance : 0,
+//               credit: balance > 0 ? balance : 0,
+//             }),
+//           );
+//         }
+//       }
+
+//       // Expense
+//       if (type === AccountType.Expense) {
+//         const balance = debit - credit;
+
+//         if (balance !== 0) {
+//           totalExpense += balance;
+
+//           lines.push(
+//             lineRepo.create({
+//               description: `Close expense account ${accId}`,
+//               account: { id: accId } as any,
+//               debit: balance < 0 ? -balance : 0,
+//               credit: balance > 0 ? balance : 0,
+//             }),
+//             lineRepo.create({
+//               description: 'Transfer to Income Summary',
+//               account: { id: incomeSummary.id } as any,
+//               debit: balance > 0 ? balance : 0,
+//               credit: balance < 0 ? -balance : 0,
+//             }),
+//           );
+//         }
+//       }
+//     }
+
+//     // ---------------------------------------
+//     // 🧾 Net Profit/Loss
+//     // ---------------------------------------
+//     const net = totalRevenue - totalExpense;
+
+//     if (net !== 0) {
+//       lines.push(
+//         lineRepo.create({
+//           description: 'Close Income Summary',
+//           account: { id: incomeSummary.id } as any,
+//           debit: net > 0 ? net : 0,
+//           credit: net < 0 ? -net : 0,
+//         }),
+//         lineRepo.create({
+//           description: 'Transfer to Retained Earnings',
+//           account: { id: retained.id } as any,
+//           debit: net < 0 ? -net : 0,
+//           credit: net > 0 ? net : 0,
+//         }),
+//       );
+//     }
+
+//     // ---------------------------------------
+//     // 💾 Save Journal Entry
+//     // ---------------------------------------
+//     await journalRepo.save(
+//       journalRepo.create({
+//         date: end,
+//         description: `Closing ${year}`,
+//         sequenceNumber: 9999,
+//         code: `${year}-closing`,
+//         isClosing: true,
+//         createdBy: { id: userId } as any,
+//         lines,
+//       }),
+//     );
+
+//     // ---------------------------------------
+//     // 🔒 Close Fiscal Year
+//     // ---------------------------------------
+//     fy.isClosed = true;
+//     fy.closedAt = new Date();
+//     fy.closedBy = { id: userId } as any;
+
+//     await fyRepo.save(fy);
+
+//     return {
+//       message: `Year ${year} closed successfully`,
+//     };
+//   });
+// }
+
+
+// async closeYear(year: number, userId: number | string) {
+//   return this.dataSource.transaction(async (manager) => {
+//     const fyRepo = manager.getRepository(FiscalYearEntity);
+//     const accountRepo = manager.getRepository(AccountEntity);
+//     const lineRepo = manager.getRepository(JournalEntryLineEntity);
+//     const journalRepo = manager.getRepository(JournalEntryEntity);
+
+//     const fy = await fyRepo.findOne({ where: { year } });
+//     if (!fy) throw new NotFoundException('Year not found');
+//     if (fy.isClosed) throw new BadRequestException('Year already closed');
+
+//     const start = new Date(year, 0, 1);
+//     const end = new Date(year, 11, 31);
+
+//     // ─── Equity Parent ───────────────────────────────────────
+//     let equityParent = await accountRepo.findOne({
+//       where: { name: 'Equity', type: AccountType.Equity, isMain: true },
+//     });
+
+//     if (!equityParent) {
+//       const topAccounts = await accountRepo.find({
+//         where: { parent: IsNull() },
+//         order: { accountCode: 'ASC' },
+//       });
+//       const last = topAccounts[topAccounts.length - 1];
+//       const code = last ? String(parseInt(last.accountCode || '0', 10) + 1) : '1';
+
+//       equityParent = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Equity',
+//           type: AccountType.Equity,
+//           parent: null,
+//           accountCode: code,
+//           isMain: true,
+//           isSub: false,
+//         }),
+//       );
+//     }
+
+//     // ─── Helper: generate child code ─────────────────────────
+//     // ✅ FIX: يستقبل parentCode وexistingChildren عشان مش يرجع للداتابيز
+//     //         في نفس الـ transaction ويجيب نتيجة قديمة
+//     const getNextChildCode = (parentCode: string, existingChildren: AccountEntity[]) => {
+//       if (existingChildren.length === 0) {
+//         return `${parentCode}.1`;
+//       }
+//       const last = existingChildren[existingChildren.length - 1];
+//       const lastPart = last.accountCode.split('.').pop() ?? '0';
+//       return `${parentCode}.${parseInt(lastPart, 10) + 1}`;
+//     };
+
+//     // ─── Load existing children ONCE ─────────────────────────
+//     // ✅ FIX: نجيب الـ children مرة واحدة ونتتبعهم يدوياً
+//     const equityChildren = await accountRepo.find({
+//       where: { parent: { id: equityParent.id } },
+//       order: { accountCode: 'ASC' },
+//     });
+
+//     // ─── Income Summary ───────────────────────────────────────
+//     let incomeSummary = await accountRepo.findOne({
+//       where: { name: 'Income Summary' },
+//     });
+
+//     if (!incomeSummary) {
+//       // ✅ FIX: نحسب الكود من الـ children الحالية قبل أي إضافة
+//       const code = getNextChildCode(equityParent.accountCode, equityChildren);
+
+//       incomeSummary = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Income Summary',
+//           type: AccountType.Equity,
+//           parent: equityParent,
+//           accountCode: code,
+//           isMain: false,
+//           isSub: true,
+//         }),
+//       );
+
+//       // ✅ FIX: نضيف الـ account الجديد للـ array محلياً
+//       equityChildren.push(incomeSummary);
+//     }
+
+//     // ─── Retained Earnings ────────────────────────────────────
+//     let retained = await accountRepo.findOne({
+//       where: { name: 'Retained Earnings' },
+//     });
+
+//     if (!retained) {
+//       // ✅ FIX: دلوقتي equityChildren فيها income summary،
+//       //         فالكود هيبقى .2 مش .1 تاني
+//       const code = getNextChildCode(equityParent.accountCode, equityChildren);
+
+//       retained = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Retained Earnings',
+//           type: AccountType.Equity,
+//           parent: equityParent,
+//           accountCode: code,
+//           isMain: false,
+//           isSub: true,
+//         }),
+//       );
+
+//       equityChildren.push(retained);
+//     }
+
+//     // ─── Aggregate Revenue & Expense ─────────────────────────
+//     const aggregated = await lineRepo
+//       .createQueryBuilder('line')
+//       .leftJoin('line.journalEntry', 'je')
+//       .leftJoin('line.account', 'account')
+//       .select('account.id', 'accountId')
+//       .addSelect('account.type', 'accountType')
+//       .addSelect('SUM(line.debit)', 'debit')
+//       .addSelect('SUM(line.credit)', 'credit')
+//       .where('je.date BETWEEN :start AND :end', { start, end })
+//       .andWhere('account.type IN (:...types)', {
+//         types: [AccountType.Revenue, AccountType.Expense],
+//       })
+//       // ✅ FIX: إحنا بنعمل closing entry، مش المفروض نحسب الـ closing entries نفسها
+//       .andWhere('je.isClosing = false')
+//       .groupBy('account.id')
+//       .addGroupBy('account.type')
+//       .getRawMany();
+
+//     const lines: JournalEntryLineEntity[] = [];
+//     let totalRevenue = 0;
+//     let totalExpense = 0;
+
+//     for (const row of aggregated) {
+//       const accId = Number(row.accountId);
+//       const debit = Number(row.debit || 0);
+//       const credit = Number(row.credit || 0);
+//       const type = row.accountType as AccountType;
+
+//       if (type === AccountType.Revenue) {
+//         const balance = credit - debit;
+//         if (balance !== 0) {
+//           totalRevenue += balance;
+//           lines.push(
+//             lineRepo.create({
+//               description: `Close revenue account ${accId}`,
+//               account: { id: accId } as any,
+//               debit: balance > 0 ? balance : 0,
+//               credit: balance < 0 ? -balance : 0,
+//             }),
+//             lineRepo.create({
+//               description: 'Transfer to Income Summary',
+//               account: { id: incomeSummary.id } as any,
+//               debit: balance < 0 ? -balance : 0,
+//               credit: balance > 0 ? balance : 0,
+//             }),
+//           );
+//         }
+//       }
+
+//       if (type === AccountType.Expense) {
+//         const balance = debit - credit;
+//         if (balance !== 0) {
+//           totalExpense += balance;
+//           lines.push(
+//             lineRepo.create({
+//               description: `Close expense account ${accId}`,
+//               account: { id: accId } as any,
+//               debit: balance < 0 ? -balance : 0,
+//               credit: balance > 0 ? balance : 0,
+//             }),
+//             lineRepo.create({
+//               description: 'Transfer to Income Summary',
+//               account: { id: incomeSummary.id } as any,
+//               debit: balance > 0 ? balance : 0,
+//               credit: balance < 0 ? -balance : 0,
+//             }),
+//           );
+//         }
+//       }
+//     }
+
+//     // ─── Net Profit / Loss → Retained Earnings ───────────────
+//     const net = totalRevenue - totalExpense;
+
+//     if (net !== 0) {
+//       lines.push(
+//         lineRepo.create({
+//           description: 'Close Income Summary',
+//           account: { id: incomeSummary.id } as any,
+//           debit: net > 0 ? net : 0,
+//           credit: net < 0 ? -net : 0,
+//         }),
+//         lineRepo.create({
+//           description: 'Transfer to Retained Earnings',
+//           account: { id: retained.id } as any,
+//           debit: net < 0 ? -net : 0,
+//           credit: net > 0 ? net : 0,
+//         }),
+//       );
+//     }
+
+//     // ─── Save Journal Entry ───────────────────────────────────
+//     // ✅ تأكد إن JournalEntryEntity عنده cascade: ['insert'] على lines
+//     const savedJournal = await journalRepo.save(
+//       journalRepo.create({
+//         date: end,
+//         description: `Closing ${year}`,
+//         sequenceNumber: 9999,
+//         code: `${year}-closing`,
+//         isClosing: true,
+//         createdBy: { id: userId } as any,
+//         lines,
+//       }),
+//     );
+
+//     // ─── Close Fiscal Year ────────────────────────────────────
+//     fy.isClosed = true;
+//     fy.closedAt = new Date();
+//     fy.closedBy = { id: userId } as any;
+//     await fyRepo.save(fy);
+
+//     return {
+//       message: `Year ${year} closed successfully`,
+//       netProfit: net,
+//       journalId: savedJournal.id,
+//     };
+//   });
+// }
+
+
+
+// async closeYear(year: number, userId: number | string) {
+//   return this.dataSource.transaction(async (manager) => {
+//     const fyRepo = manager.getRepository(FiscalYearEntity);
+//     const accountRepo = manager.getRepository(AccountEntity);
+//     const lineRepo = manager.getRepository(JournalEntryLineEntity);
+//     const journalRepo = manager.getRepository(JournalEntryEntity);
+
+//     // ─── Validate Fiscal Year ─────────────────────────────────
+//     const fy = await fyRepo.findOne({ where: { year } });
+//     if (!fy) throw new NotFoundException('Year not found');
+//     if (fy.isClosed) throw new BadRequestException('Year already closed');
+
+//     const start = new Date(year, 0, 1);
+//     const end = new Date(year, 11, 31);
+
+//     // ─── Equity Parent (3000) ─────────────────────────────────
+//     const equityParent = await accountRepo.findOne({
+//       where: { accountCode: '3000', type: AccountType.Equity },
+//     });
+
+//     if (!equityParent) {
+//       throw new NotFoundException('Equity account (3000) not found');
+//     }
+
+//     // ─── Income Summary (3000.1) ──────────────────────────────
+//     let incomeSummary = await accountRepo.findOne({
+//       where: { accountCode: '3000.1' },
+//     });
+
+//     if (!incomeSummary) {
+//       incomeSummary = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Income Summary',
+//           type: AccountType.Equity,
+//           parent: equityParent,
+//           accountCode: '3000.1',
+//           isMain: false,
+//           isSub: true,
+//         }),
+//       );
+//     }
+
+//     // ─── Retained Earnings (3000.2) ───────────────────────────
+//     let retained = await accountRepo.findOne({
+//       where: { accountCode: '3000.2' },
+//     });
+
+//     if (!retained) {
+//       retained = await accountRepo.save(
+//         accountRepo.create({
+//           name: 'Retained Earnings',
+//           type: AccountType.Equity,
+//           parent: equityParent,
+//           accountCode: '3000.2',
+//           isMain: false,
+//           isSub: true,
+//         }),
+//       );
+//     }
+
+//     // ─── Aggregate Revenue & Expense ─────────────────────────
+//     const aggregated = await lineRepo
+//       .createQueryBuilder('line')
+//       .leftJoin('line.journalEntry', 'je')
+//       .leftJoin('line.account', 'account')
+//       .select('account.id', 'accountId')
+//       .addSelect('account.type', 'accountType')
+//       .addSelect('SUM(line.debit)', 'debit')
+//       .addSelect('SUM(line.credit)', 'credit')
+//       .where('je.date BETWEEN :start AND :end', { start, end })
+//       .andWhere('account.type IN (:...types)', {
+//         types: [AccountType.Revenue, AccountType.Expense],
+//       })
+//       .andWhere('je.isClosing = false')
+//       .groupBy('account.id')
+//       .addGroupBy('account.type')
+//       .getRawMany();
+
+//     const lines: JournalEntryLineEntity[] = [];
+//     let totalRevenue = 0;
+//     let totalExpense = 0;
+
+//     // ─── Process Revenue Accounts ────────────────────────────
+//     for (const row of aggregated) {
+//       const accId = Number(row.accountId);
+//       const debit = Number(row.debit || 0);
+//       const credit = Number(row.credit || 0);
+//       const type = row.accountType as AccountType;
+
+//       if (type === AccountType.Revenue) {
+//         const balance = credit - debit;
+
+//         if (balance !== 0) {
+//           totalRevenue += balance;
+
+//           lines.push(
+//             lineRepo.create({
+//               description: `Close revenue account ${accId}`,
+//               account: { id: accId } as any,
+//               debit: balance > 0 ? balance : 0,
+//               credit: balance < 0 ? -balance : 0,
+//             }),
+//             lineRepo.create({
+//               description: 'Transfer to Income Summary',
+//               account: { id: incomeSummary.id } as any,
+//               debit: balance < 0 ? -balance : 0,
+//               credit: balance > 0 ? balance : 0,
+//             }),
+//           );
+//         }
+//       }
+
+//       // ─── Process Expense Accounts ──────────────────────────
+//       if (type === AccountType.Expense) {
+//         const balance = debit - credit;
+
+//         if (balance !== 0) {
+//           totalExpense += balance;
+
+//           lines.push(
+//             lineRepo.create({
+//               description: `Close expense account ${accId}`,
+//               account: { id: accId } as any,
+//               debit: balance < 0 ? -balance : 0,
+//               credit: balance > 0 ? balance : 0,
+//             }),
+//             lineRepo.create({
+//               description: 'Transfer to Income Summary',
+//               account: { id: incomeSummary.id } as any,
+//               debit: balance > 0 ? balance : 0,
+//               credit: balance < 0 ? -balance : 0,
+//             }),
+//           );
+//         }
+//       }
+//     }
+
+//     // ─── Net Profit / Loss → Retained Earnings ───────────────
+//     const net = totalRevenue - totalExpense;
+
+//     if (net !== 0) {
+//       lines.push(
+//         lineRepo.create({
+//           description: 'Close Income Summary',
+//           account: { id: incomeSummary.id } as any,
+//           debit: net > 0 ? net : 0,
+//           credit: net < 0 ? -net : 0,
+//         }),
+//         lineRepo.create({
+//           description: 'Transfer to Retained Earnings',
+//           account: { id: retained.id } as any,
+//           debit: net < 0 ? -net : 0,
+//           credit: net > 0 ? net : 0,
+//         }),
+//       );
+//     }
+
+//     // ─── Save Closing Journal Entry ───────────────────────────
+//     const savedJournal = await journalRepo.save(
+//       journalRepo.create({
+//         date: end,
+//         description: `Closing entries for year ${year}`,
+//         sequenceNumber: 9999,
+//         code: `${year}-closing`,
+//         isClosing: true,
+//         createdBy: { id: userId } as any,
+//         lines,
+//       }),
+//     );
+
+//     // ─── Mark Fiscal Year as Closed ───────────────────────────
+//     fy.isClosed = true;
+//     fy.closedAt = new Date();
+//     fy.closedBy = { id: userId } as any;
+//     await fyRepo.save(fy);
+
+//     return {
+//       message: `Year ${year} closed successfully`,
+//       netProfit: net,
+//       journalId: savedJournal.id,
+//     };
+//   });
+// }
+
+
 async closeYear(year: number, userId: number | string) {
   return this.dataSource.transaction(async (manager) => {
-    const fyRepo = manager.getRepository(FiscalYearEntity);
+    const fyRepo      = manager.getRepository(FiscalYearEntity);
     const accountRepo = manager.getRepository(AccountEntity);
-    const lineRepo = manager.getRepository(JournalEntryLineEntity);
+    const lineRepo    = manager.getRepository(JournalEntryLineEntity);
     const journalRepo = manager.getRepository(JournalEntryEntity);
 
+    // ─── Validate Fiscal Year ─────────────────────────────────
     const fy = await fyRepo.findOne({ where: { year } });
-
     if (!fy) throw new NotFoundException('Year not found');
     if (fy.isClosed) throw new BadRequestException('Year already closed');
 
     const start = new Date(year, 0, 1);
-    const end = new Date(year, 11, 31);
+    const end   = new Date(year, 11, 31);
 
-    // ---------------------------------------
-    // 🧠 Equity Parent (FIXED)
-    // ---------------------------------------
-    let equityParent = await accountRepo.findOne({
-      where: {
-        name: 'Equity',
-        type: AccountType.Equity,
-        isMain: true,
-      },
+    // ─── Equity Parent (3000) ─────────────────────────────────
+    const equityParent = await accountRepo.findOne({
+      where: { accountCode: '3000', type: AccountType.Equity },
     });
-
     if (!equityParent) {
-  const topAccounts = await accountRepo.find({
-  where: { parent: IsNull() },
-  order: { accountCode: 'ASC' },
-});
-      let code = '1';
-
-      if (topAccounts.length > 0) {
-        const last = topAccounts[topAccounts.length - 1];
-        code = String(parseInt(last.accountCode || '0', 10) + 1);
-      }
-
-      equityParent = await accountRepo.save(
-        accountRepo.create({
-          name: 'Equity',
-          type: AccountType.Equity,
-          parent: null,
-          accountCode: code,
-          isMain: true,
-          isSub: false,
-        }),
-      );
+      throw new NotFoundException('Equity account (3000) not found');
     }
 
-    // ---------------------------------------
-    // 🧠 Child Code Generator (FIXED)
-    // ---------------------------------------
-    const generateChildCode = async (parentId: number) => {
-      const parent = await accountRepo.findOne({
-        where: { id: parentId },
-      });
-
-      if (!parent) {
-        throw new BadRequestException('Parent not found');
-      }
-
-      const children = await accountRepo.find({
-        where: { parent: { id: parentId } },
-        order: { accountCode: 'ASC' },
-      });
-
-      if (children.length === 0) {
-        return parent.accountCode
-          ? `${parent.accountCode}.1`
-          : '1';
-      }
-
-      const last = children[children.length - 1];
-      const lastPart = last.accountCode.split('.').pop() ?? '0';
-      const newNumber = parseInt(lastPart, 10) + 1;
-
-      return parent.accountCode
-        ? `${parent.accountCode}.${newNumber}`
-        : `${newNumber}`;
-    };
-
-    // ---------------------------------------
-    // 🧠 Income Summary
-    // ---------------------------------------
+    // ─── Income Summary (3000.1) ──────────────────────────────
     let incomeSummary = await accountRepo.findOne({
-      where: { name: 'Income Summary' },
+      where: { accountCode: '3000.1' },
     });
-
     if (!incomeSummary) {
-      const code = await generateChildCode(equityParent.id);
-
       incomeSummary = await accountRepo.save(
         accountRepo.create({
-          name: 'Income Summary',
-          type: AccountType.Equity,
-          parent: equityParent,
-          accountCode: code,
-          isMain: false,
-          isSub: true,
+          name:        'Income Summary',
+          type:        AccountType.Equity,
+          parent:      equityParent,
+          accountCode: '3000.1',
+          isMain:      false,
+          isSub:       true,
         }),
       );
     }
 
-    // ---------------------------------------
-    // 🧠 Retained Earnings
-    // ---------------------------------------
+    // ─── Retained Earnings (3000.2) ───────────────────────────
     let retained = await accountRepo.findOne({
-      where: { name: 'Retained Earnings' },
+      where: { accountCode: '3000.2' },
     });
-
     if (!retained) {
-      const code = await generateChildCode(equityParent.id);
-
       retained = await accountRepo.save(
         accountRepo.create({
-          name: 'Retained Earnings',
-          type: AccountType.Equity,
-          parent: equityParent,
-          accountCode: code,
-          isMain: false,
-          isSub: true,
+          name:        'Retained Earnings',
+          type:        AccountType.Equity,
+          parent:      equityParent,
+          accountCode: '3000.2',
+          isMain:      false,
+          isSub:       true,
         }),
       );
     }
 
-    // ---------------------------------------
-    // 🧠 Aggregate Revenue & Expense
-    // ---------------------------------------
+    // ─── Pre-load كـ full objects عشان الـ lines تتربط صح ────
+    const incomeSummaryAccount = await accountRepo.findOne({
+      where: { id: incomeSummary.id },
+    });
+    const retainedAccount = await accountRepo.findOne({
+      where: { id: retained.id },
+    });
+    if (!incomeSummaryAccount || !retainedAccount) {
+      throw new NotFoundException('Closing accounts not found');
+    }
+
+    // ─── Aggregate Revenue & Expense ─────────────────────────
+    // ✅ بنستبعد قيود الإقفال عشان منحسبش مرتين لو اتعمل rollback وrerun
     const aggregated = await lineRepo
       .createQueryBuilder('line')
       .leftJoin('line.journalEntry', 'je')
       .leftJoin('line.account', 'account')
-      .select('account.id', 'accountId')
+      .select('account.id',   'accountId')
       .addSelect('account.type', 'accountType')
-      .addSelect('SUM(line.debit)', 'debit')
-      .addSelect('SUM(line.credit)', 'credit')
+      .addSelect('SUM(line.debit)',   'debit')
+      .addSelect('SUM(line.credit)',  'credit')
       .where('je.date BETWEEN :start AND :end', { start, end })
       .andWhere('account.type IN (:...types)', {
         types: [AccountType.Revenue, AccountType.Expense],
       })
+      .andWhere('je.isClosing = false')   // ✅ مهم
       .groupBy('account.id')
       .addGroupBy('account.type')
       .getRawMany();
@@ -1916,115 +2531,104 @@ async closeYear(year: number, userId: number | string) {
     let totalRevenue = 0;
     let totalExpense = 0;
 
-    // ---------------------------------------
-    // 💰 Process Accounts
-    // ---------------------------------------
+    // ─── Process Revenue & Expense ───────────────────────────
     for (const row of aggregated) {
-      const accId = Number(row.accountId);
-      const debit = Number(row.debit || 0);
+      const accId  = Number(row.accountId);
+      const debit  = Number(row.debit  || 0);
       const credit = Number(row.credit || 0);
-      const type = row.accountType as AccountType;
+      const type   = row.accountType as AccountType;
 
-      // Revenue
       if (type === AccountType.Revenue) {
         const balance = credit - debit;
-
         if (balance !== 0) {
           totalRevenue += balance;
-
           lines.push(
             lineRepo.create({
               description: `Close revenue account ${accId}`,
-              account: { id: accId } as any,
-              debit: balance > 0 ? balance : 0,
-              credit: balance < 0 ? -balance : 0,
+              account:     { id: accId } as any,
+              debit:       balance > 0 ? balance : 0,
+              credit:      balance < 0 ? -balance : 0,
             }),
             lineRepo.create({
               description: 'Transfer to Income Summary',
-              account: { id: incomeSummary.id } as any,
-              debit: balance < 0 ? -balance : 0,
-              credit: balance > 0 ? balance : 0,
+              account:     incomeSummaryAccount,   // ✅ full object
+              debit:       balance < 0 ? -balance : 0,
+              credit:      balance > 0 ? balance  : 0,
             }),
           );
         }
       }
 
-      // Expense
       if (type === AccountType.Expense) {
         const balance = debit - credit;
-
         if (balance !== 0) {
           totalExpense += balance;
-
           lines.push(
             lineRepo.create({
               description: `Close expense account ${accId}`,
-              account: { id: accId } as any,
-              debit: balance < 0 ? -balance : 0,
-              credit: balance > 0 ? balance : 0,
+              account:     { id: accId } as any,
+              debit:       balance < 0 ? -balance : 0,
+              credit:      balance > 0 ? balance  : 0,
             }),
             lineRepo.create({
               description: 'Transfer to Income Summary',
-              account: { id: incomeSummary.id } as any,
-              debit: balance > 0 ? balance : 0,
-              credit: balance < 0 ? -balance : 0,
+              account:     incomeSummaryAccount,   // ✅ full object
+              debit:       balance > 0 ? balance  : 0,
+              credit:      balance < 0 ? -balance : 0,
             }),
           );
         }
       }
     }
 
-    // ---------------------------------------
-    // 🧾 Net Profit/Loss
-    // ---------------------------------------
+    // ─── Net Profit / Loss → Retained Earnings ───────────────
     const net = totalRevenue - totalExpense;
-
     if (net !== 0) {
       lines.push(
         lineRepo.create({
           description: 'Close Income Summary',
-          account: { id: incomeSummary.id } as any,
-          debit: net > 0 ? net : 0,
-          credit: net < 0 ? -net : 0,
+          account:     incomeSummaryAccount,       // ✅ full object
+          debit:       net > 0 ? net  : 0,
+          credit:      net < 0 ? -net : 0,
         }),
         lineRepo.create({
           description: 'Transfer to Retained Earnings',
-          account: { id: retained.id } as any,
-          debit: net < 0 ? -net : 0,
-          credit: net > 0 ? net : 0,
+          account:     retainedAccount,            // ✅ full object
+          debit:       net < 0 ? -net : 0,
+          credit:      net > 0 ? net  : 0,
         }),
       );
     }
 
-    // ---------------------------------------
-    // 💾 Save Journal Entry
-    // ---------------------------------------
-    await journalRepo.save(
+    // ─── Save Closing Journal Entry ───────────────────────────
+    // ✅ fiscalYear مربوط عشان generate يلاقي الـ closing lines
+    const savedJournal = await journalRepo.save(
       journalRepo.create({
-        date: end,
-        description: `Closing ${year}`,
+        date:           end,
+        description:    `Closing entries for year ${year}`,
         sequenceNumber: 9999,
-        code: `${year}-closing`,
-        isClosing: true,
-        createdBy: { id: userId } as any,
+        code:           `${year}-closing`,
+        isClosing:      true,
+        fiscalYear:     fy,                        // ✅ مهم جداً
+        createdBy:      { id: userId } as any,
         lines,
       }),
     );
 
-    // ---------------------------------------
-    // 🔒 Close Fiscal Year
-    // ---------------------------------------
-    fy.isClosed = true;
-    fy.closedAt = new Date();
-    fy.closedBy = { id: userId } as any;
-
+    // ─── Mark Fiscal Year as Closed ───────────────────────────
+    fy.isClosed  = true;
+    fy.closedAt  = new Date();
+    fy.closedBy  = { id: userId } as any;
     await fyRepo.save(fy);
 
     return {
-      message: `Year ${year} closed successfully`,
+      message:   `Year ${year} closed successfully`,
+      netProfit: net,
+      journalId: savedJournal.id,
     };
   });
 }
+
 
   //   async closeYear(year: number, userId: number | string) {
   //   return this.dataSource.transaction(async (manager) => {
