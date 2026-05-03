@@ -2154,104 +2154,263 @@ export class GeneralLedgerService {
     private readonly openingBalanceService: OpeningBalanceService,
   ) {}
 
+  // async getGeneralLedger(dto: GetLedgerDto): Promise<LedgerResult> {
+  //   const { accountId, startDate, endDate, costCenter } = dto;
+
+  //   // =========================================================
+  //   // 1- هات الحساب
+  //   // =========================================================
+  //   const account = await this.accountRepository.findOne({
+  //     where: { id: accountId },
+  //   });
+  //   if (!account) throw new NotFoundException('Account not found');
+
+  //   // =========================================================
+  //   // 2- تواريخ آمنة (fix timezone)
+  //   // =========================================================
+  //   const effectiveStartDate = startDate
+  //     ? new Date(startDate + 'T00:00:00')
+  //     : new Date(new Date().getFullYear(), 0, 1);
+
+  //   const effectiveEndDate = endDate
+  //     ? new Date(endDate + 'T23:59:59')
+  //     : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
+
+  //   // =========================================================
+  //   // 3- منع اختلاف السنة المالية في نفس التقرير
+  //   // =========================================================
+  //   const startYear = effectiveStartDate.getFullYear();
+  //   const endYear = effectiveEndDate.getFullYear();
+
+  //   if (startYear !== endYear) {
+  //     throw new BadRequestException(
+  //       'startDate and endDate must be within the same fiscal year',
+  //     );
+  //   }
+
+  //   // =========================================================
+  //   // 4- السنة المالية (للعرض)
+  //   // =========================================================
+  //   const fiscalYears = await this.fiscalYearRepository.find({
+  //     where: { year: startYear },
+  //     order: { year: 'ASC' },
+  //   });
+
+  //   // =========================================================
+  //   // ✅ 5- Opening Balance من جدول opening_balances
+  //   // بيراعي تلقائياً:
+  //   //   - لو أول سنة → يرجع الرصيد المدخل يدوياً
+  //   //   - لو السنة السابقة متقفلة → من الجدول (سريع)
+  //   //   - لو السنة السابقة مفتوحة → on-the-fly (مع تحذير)
+  //   // =========================================================
+  //   const openingData =
+  //     await this.openingBalanceService.getOpeningBalanceForLedger(
+  //       accountId,
+  //       startYear,
+  //       costCenter,
+  //     );
+
+  //   const isEstimated = openingData.isEstimated;
+  //   let openingBalance = openingData.openingDebit - openingData.openingCredit;
+
+  //   // =========================================================
+  //   // 6- القيود داخل الفترة
+  //   // نستبعد قيود الإقفال والافتتاح القديمة
+  //   // =========================================================
+  //   const entries = await this.journalEntryRepository.find({
+  //     where: {
+  //       date: Between(effectiveStartDate, effectiveEndDate),
+  //       isClosing: false,
+  //       isOpening: false,
+  //     },
+  //     relations: ['lines', 'lines.account', 'lines.costCenter', 'fiscalYear'],
+  //     order: { date: 'ASC', sequenceNumber: 'ASC' },
+  //   });
+
+  //   // =========================================================
+  //   // 7- بناء التقرير
+  //   // =========================================================
+  //   const ledger: LedgerDetail[] = [];
+  //   let runningBalance = openingBalance;
+
+  //   // ✅ صف الرصيد الافتتاحي
+  //   ledger.push({
+  //     entryNo: 'OPEN',
+  //     date: effectiveStartDate,
+  //     costCenter: '',
+  //     description: isEstimated
+  //       ? 'Opening Balance ⚠️ (Estimated - Previous year not closed yet)'
+  //       : 'Opening Balance',
+  //     code: '',
+  //     debit: openingBalance > 0 ? openingBalance : 0,
+  //     credit: openingBalance < 0 ? Math.abs(openingBalance) : 0,
+  //     balance: openingBalance,
+  //     fiscalYear: startYear,
+  //     isOpeningBalance: true,
+  //     isEstimated,
+  //   });
+
+  //   // ✅ القيود العادية
+  //   for (const entry of entries) {
+  //     const filteredLines = entry.lines?.filter(
+  //       (l) =>
+  //         l.account.id === accountId &&
+  //         (!costCenter || l.costCenter?.id === costCenter),
+  //     );
+
+  //     for (const line of filteredLines ?? []) {
+  //       const debit = Number(line.debit) || 0;
+  //       const credit = Number(line.credit) || 0;
+
+  //       runningBalance += debit - credit;
+
+  //       ledger.push({
+  //         entryNo: entry.sequenceNumber,
+  //         date: entry.date,
+  //         costCenter: line.costCenter?.name || '',
+  //         description: line.description || entry.description,
+  //         code: entry.code,
+  //         debit,
+  //         credit,
+  //         balance: runningBalance,
+  //         fiscalYear: entry.fiscalYear?.year || '',
+  //         isOpeningBalance: false,
+  //       });
+  //     }
+  //   }
+
+  //   // =========================================================
+  //   // 8- صف الرصيد الختامي
+  //   // =========================================================
+  //   const finalNature =
+  //     runningBalance > 0
+  //       ? '(Debit)'
+  //       : runningBalance < 0
+  //         ? '(Credit)'
+  //         : '';
+
+  //   ledger.push({
+  //     entryNo: '',
+  //     date: effectiveEndDate,
+  //     costCenter: '',
+  //     description: `Closing Balance ${finalNature}`,
+  //     code: '',
+  //     debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+  //     credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
+  //     balance: '',
+  //     fiscalYear: startYear,
+  //     isClosingBalance: true,
+  //   });
+
+  //   // =========================================================
+  //   // 9- الإجماليات (بدون صف الـ Opening والـ Closing)
+  //   // =========================================================
+  //   // const movementLines = ledger.filter(
+  //   //   (l) => !l.isOpeningBalance && !l.isClosingBalance,
+  //   // );
+
+  //   const totals: LedgerTotals = {
+  //     debit: ledger.reduce((sum, l) => sum + (l.debit || 0), 0),
+  //     credit: ledger.reduce((sum, l) => sum + (l.credit || 0), 0),
+  //     openingBalance,
+  //     closingBalance: runningBalance,
+  //   };
+
+  //   return {
+  //     account,
+  //     ledger,
+  //     totals,
+  //     isEstimated,
+  //     fiscalYears: fiscalYears.map((fy) => ({
+  //       id: fy.id,
+  //       year: fy.year,
+  //       isClosed: fy.isClosed,
+  //       closedAt: fy.closedAt,
+  //     })),
+  //   };
+  // }
+
   async getGeneralLedger(dto: GetLedgerDto): Promise<LedgerResult> {
-    const { accountId, startDate, endDate, costCenter } = dto;
+  const { accountId, startDate, endDate, costCenter } = dto;
 
-    // =========================================================
-    // 1- هات الحساب
-    // =========================================================
-    const account = await this.accountRepository.findOne({
-      where: { id: accountId },
-    });
-    if (!account) throw new NotFoundException('Account not found');
+  // =========================================================
+  // 1- هات الحساب
+  // =========================================================
+  const account = await this.accountRepository.findOne({
+    where: { id: accountId },
+  });
+  if (!account) throw new NotFoundException('Account not found');
 
-    // =========================================================
-    // 2- تواريخ آمنة (fix timezone)
-    // =========================================================
-    const effectiveStartDate = startDate
-      ? new Date(startDate + 'T00:00:00')
-      : new Date(new Date().getFullYear(), 0, 1);
+  // =========================================================
+  // 2- تواريخ آمنة (fix timezone)
+  // =========================================================
+  const effectiveStartDate = startDate
+    ? new Date(startDate + 'T00:00:00')
+    : new Date(new Date().getFullYear(), 0, 1);
 
-    const effectiveEndDate = endDate
-      ? new Date(endDate + 'T23:59:59')
-      : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
+  const effectiveEndDate = endDate
+    ? new Date(endDate + 'T23:59:59')
+    : new Date(new Date().getFullYear(), 11, 31, 23, 59, 59);
 
-    // =========================================================
-    // 3- منع اختلاف السنة المالية في نفس التقرير
-    // =========================================================
-    const startYear = effectiveStartDate.getFullYear();
-    const endYear = effectiveEndDate.getFullYear();
+  // =========================================================
+  // 3- منع اختلاف السنة المالية
+  // =========================================================
+  const startYear = effectiveStartDate.getFullYear();
+  const endYear = effectiveEndDate.getFullYear();
 
-    if (startYear !== endYear) {
-      throw new BadRequestException(
-        'startDate and endDate must be within the same fiscal year',
-      );
-    }
+  if (startYear !== endYear) {
+    throw new BadRequestException(
+      'startDate and endDate must be within the same fiscal year',
+    );
+  }
 
-    // =========================================================
-    // 4- السنة المالية (للعرض)
-    // =========================================================
-    const fiscalYears = await this.fiscalYearRepository.find({
-      where: { year: startYear },
-      order: { year: 'ASC' },
-    });
+  // =========================================================
+  // 4- السنة المالية
+  // =========================================================
+  const fiscalYears = await this.fiscalYearRepository.find({
+    where: { year: startYear },
+    order: { year: 'ASC' },
+  });
 
-    // =========================================================
-    // ✅ 5- Opening Balance من جدول opening_balances
-    // بيراعي تلقائياً:
-    //   - لو أول سنة → يرجع الرصيد المدخل يدوياً
-    //   - لو السنة السابقة متقفلة → من الجدول (سريع)
-    //   - لو السنة السابقة مفتوحة → on-the-fly (مع تحذير)
-    // =========================================================
-    const openingData =
-      await this.openingBalanceService.getOpeningBalanceForLedger(
-        accountId,
-        startYear,
-        costCenter,
-      );
+  // =========================================================
+  // 5- Opening Balance من السيرفيس
+  // =========================================================
+  const openingData =
+    await this.openingBalanceService.getOpeningBalanceForLedger(
+      accountId,
+      startYear,
+      costCenter,
+    );
 
-    const isEstimated = openingData.isEstimated;
-    let openingBalance = openingData.openingDebit - openingData.openingCredit;
+  const isEstimated = openingData.isEstimated;
+  let openingBalance = openingData.openingDebit - openingData.openingCredit;
 
-    // =========================================================
-    // 6- القيود داخل الفترة
-    // نستبعد قيود الإقفال والافتتاح القديمة
-    // =========================================================
-    const entries = await this.journalEntryRepository.find({
+  // =========================================================
+  // ✅ 5.1- إضافة الحركات قبل startDate (لو مش أول السنة)
+  // =========================================================
+  let adjustedOpeningBalance = openingBalance;
+
+  const isStartOfYear =
+    effectiveStartDate.getMonth() === 0 &&
+    effectiveStartDate.getDate() === 1;
+
+  if (!isStartOfYear) {
+    const preEntries = await this.journalEntryRepository.find({
       where: {
-        date: Between(effectiveStartDate, effectiveEndDate),
+        date: Between(
+          new Date(startYear, 0, 1),
+          new Date(effectiveStartDate.getTime() - 1),
+        ),
         isClosing: false,
         isOpening: false,
       },
-      relations: ['lines', 'lines.account', 'lines.costCenter', 'fiscalYear'],
-      order: { date: 'ASC', sequenceNumber: 'ASC' },
+      relations: ['lines', 'lines.account', 'lines.costCenter'],
     });
 
-    // =========================================================
-    // 7- بناء التقرير
-    // =========================================================
-    const ledger: LedgerDetail[] = [];
-    let runningBalance = openingBalance;
+    let preDebit = 0;
+    let preCredit = 0;
 
-    // ✅ صف الرصيد الافتتاحي
-    ledger.push({
-      entryNo: 'OPEN',
-      date: effectiveStartDate,
-      costCenter: '',
-      description: isEstimated
-        ? 'Opening Balance ⚠️ (Estimated - Previous year not closed yet)'
-        : 'Opening Balance',
-      code: '',
-      debit: openingBalance > 0 ? openingBalance : 0,
-      credit: openingBalance < 0 ? Math.abs(openingBalance) : 0,
-      balance: openingBalance,
-      fiscalYear: startYear,
-      isOpeningBalance: true,
-      isEstimated,
-    });
-
-    // ✅ القيود العادية
-    for (const entry of entries) {
+    for (const entry of preEntries) {
       const filteredLines = entry.lines?.filter(
         (l) =>
           l.account.id === accountId &&
@@ -2259,74 +2418,123 @@ export class GeneralLedgerService {
       );
 
       for (const line of filteredLines ?? []) {
-        const debit = Number(line.debit) || 0;
-        const credit = Number(line.credit) || 0;
-
-        runningBalance += debit - credit;
-
-        ledger.push({
-          entryNo: entry.sequenceNumber,
-          date: entry.date,
-          costCenter: line.costCenter?.name || '',
-          description: line.description || entry.description,
-          code: entry.code,
-          debit,
-          credit,
-          balance: runningBalance,
-          fiscalYear: entry.fiscalYear?.year || '',
-          isOpeningBalance: false,
-        });
+        preDebit += Number(line.debit) || 0;
+        preCredit += Number(line.credit) || 0;
       }
     }
 
-    // =========================================================
-    // 8- صف الرصيد الختامي
-    // =========================================================
-    const finalNature =
-      runningBalance > 0
-        ? '(Debit)'
-        : runningBalance < 0
-          ? '(Credit)'
-          : '';
+    adjustedOpeningBalance += preDebit - preCredit;
+  }
 
-    ledger.push({
-      entryNo: '',
-      date: effectiveEndDate,
-      costCenter: '',
-      description: `Closing Balance ${finalNature}`,
-      code: '',
-      debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
-      credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
-      balance: '',
-      fiscalYear: startYear,
-      isClosingBalance: true,
-    });
+  // =========================================================
+  // 6- القيود داخل الفترة
+  // =========================================================
+  const entries = await this.journalEntryRepository.find({
+    where: {
+      date: Between(effectiveStartDate, effectiveEndDate),
+      isClosing: false,
+      isOpening: false,
+    },
+    relations: ['lines', 'lines.account', 'lines.costCenter', 'fiscalYear'],
+    order: { date: 'ASC', sequenceNumber: 'ASC' },
+  });
 
-    // =========================================================
-    // 9- الإجماليات (بدون صف الـ Opening والـ Closing)
-    // =========================================================
-    const movementLines = ledger.filter(
-      (l) => !l.isOpeningBalance && !l.isClosingBalance,
+  // =========================================================
+  // 7- بناء التقرير
+  // =========================================================
+  const ledger: LedgerDetail[] = [];
+  let runningBalance = adjustedOpeningBalance;
+
+  // ✅ Opening Row
+  ledger.push({
+    entryNo: 'OPEN',
+    date: effectiveStartDate,
+    costCenter: '',
+    description: isEstimated
+      ? 'Opening Balance ⚠️ (Estimated - Previous year not closed yet)'
+      : 'Opening Balance',
+    code: '',
+    debit: adjustedOpeningBalance > 0 ? adjustedOpeningBalance : 0,
+    credit: adjustedOpeningBalance < 0 ? Math.abs(adjustedOpeningBalance) : 0,
+    balance: adjustedOpeningBalance,
+    fiscalYear: startYear,
+    isOpeningBalance: true,
+    isEstimated,
+  });
+
+  // ✅ القيود
+  for (const entry of entries) {
+    const filteredLines = entry.lines?.filter(
+      (l) =>
+        l.account.id === accountId &&
+        (!costCenter || l.costCenter?.id === costCenter),
     );
 
-    const totals: LedgerTotals = {
-      debit: movementLines.reduce((sum, l) => sum + (l.debit || 0), 0),
-      credit: movementLines.reduce((sum, l) => sum + (l.credit || 0), 0),
-      openingBalance,
-      closingBalance: runningBalance,
-    };
+    for (const line of filteredLines ?? []) {
+      const debit = Number(line.debit) || 0;
+      const credit = Number(line.credit) || 0;
 
-    return {
-      account,
-      ledger,
-      totals,
-      isEstimated,
-      fiscalYears: fiscalYears.map((fy) => ({
-        id: fy.id,
-        year: fy.year,
-        isClosed: fy.isClosed,
-        closedAt: fy.closedAt,
-      })),
-    };
+      runningBalance += debit - credit;
+
+      ledger.push({
+        entryNo: entry.sequenceNumber,
+        date: entry.date,
+        costCenter: line.costCenter?.name || '',
+        description: line.description || entry.description,
+        code: entry.code,
+        debit,
+        credit,
+        balance: runningBalance,
+        fiscalYear: entry.fiscalYear?.year || '',
+        isOpeningBalance: false,
+      });
+    }
   }
+
+  // =========================================================
+  // 8- Closing Row
+  // =========================================================
+  const finalNature =
+    runningBalance > 0
+      ? '(Debit)'
+      : runningBalance < 0
+      ? '(Credit)'
+      : '';
+
+  ledger.push({
+    entryNo: '',
+    date: effectiveEndDate,
+    costCenter: '',
+    description: `Closing Balance ${finalNature}`,
+    code: '',
+    debit: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+    credit: runningBalance >= 0 ? Math.abs(runningBalance) : 0,
+    balance: '',
+    fiscalYear: startYear,
+    isClosingBalance: true,
+  });
+
+  // =========================================================
+  // 9- Totals
+  // =========================================================
+  const totals: LedgerTotals = {
+    debit: ledger.reduce((sum, l) => sum + (l.debit || 0), 0),
+    credit: ledger.reduce((sum, l) => sum + (l.credit || 0), 0),
+    openingBalance: adjustedOpeningBalance,
+    closingBalance: runningBalance,
+  };
+
+  return {
+    account,
+    ledger,
+    totals,
+    isEstimated,
+    fiscalYears: fiscalYears.map((fy) => ({
+      id: fy.id,
+      year: fy.year,
+      isClosed: fy.isClosed,
+      closedAt: fy.closedAt,
+    })),
+  };
+}
 }
