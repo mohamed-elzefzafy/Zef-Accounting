@@ -113,7 +113,6 @@ export class JournalEntriesService {
         `Journal entry code "${code}" already exists`,
       );
     }
-console.log("dto" , dto);
 
     // ✅ create entity
     const entry = this.journalEntryRepository.create({

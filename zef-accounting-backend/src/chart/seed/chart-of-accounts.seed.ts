@@ -16,7 +16,7 @@ export class ChartSeeder implements OnModuleInit {
       const accounts = [
         {
           name: 'asset',
-          accountCode: '1000',
+          accountCode: '1',
           type: AccountType.Asset,
           parent: null,
           isMain: true,
@@ -24,7 +24,7 @@ export class ChartSeeder implements OnModuleInit {
         },
         {
           name: 'liability',
-          accountCode: '2000',
+          accountCode: '2',
           type: AccountType.Liability,
           parent: null,
           isMain: true,
@@ -32,7 +32,7 @@ export class ChartSeeder implements OnModuleInit {
         },
         {
           name: 'equity',
-          accountCode: '3000',
+          accountCode: '3',
           type: AccountType.Equity,
           parent: null,
           isMain: true,
@@ -40,7 +40,7 @@ export class ChartSeeder implements OnModuleInit {
         },
         {
           name: 'revenue',
-          accountCode: '4000',
+          accountCode: '4',
           type: AccountType.Revenue,
           parent: null,
           isMain: true,
@@ -48,7 +48,7 @@ export class ChartSeeder implements OnModuleInit {
         },
         {
           name: 'expense',
-          accountCode: '5000',
+          accountCode: '5',
           type: AccountType.Expense,
           parent: null,
           isMain: true,

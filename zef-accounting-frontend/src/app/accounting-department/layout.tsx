@@ -55,6 +55,16 @@ const navItems: NavItem[] = [
     icon: <Settings />,
     path: "/accounting-department/settings",
   },
+  {
+    text: "Create Account",
+    icon: <Settings />,
+    path: "/accounting-department/create-account",
+  },
+  {
+    text: "trail-balance",
+    icon: <Settings />,
+    path: "/accounting-department/trail-balance",
+  },
 ];
 
 const InstructorDashboardLayout = ({ children }: { children: ReactNode }) => {

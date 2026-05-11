@@ -11,6 +11,16 @@ export const accountsApiSlice = apiSlice.injectEndpoints({
       providesTags: ["Accounts"],
     }),
 
+
+      createAccount : builder.mutation({
+      query: (payLoad ) => ({
+        url: `/api/v1/chart-of-accounts`,
+        method: "POST",
+        body: payLoad,
+      }),
+    }),
+
+
     // updateCategory: builder.mutation({
     //   query: ({ payLoad, categoryId }) => ({
     //     url: `/api/v1/category/${categoryId}`,
@@ -94,4 +104,4 @@ export const accountsApiSlice = apiSlice.injectEndpoints({
   }),
 });
 
-export const { useGetAccountsQuery } = accountsApiSlice;
+export const { useGetAccountsQuery , useCreateAccountMutation } = accountsApiSlice;

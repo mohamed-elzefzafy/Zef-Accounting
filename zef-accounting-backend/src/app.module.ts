@@ -25,6 +25,7 @@ import { FiscalYearModule } from './fiscal-year/fiscal-year.module';
 import { FiscalYearEntity } from './fiscal-year/entities/fiscal-year.entity';
 import { OpeningBalanceModule } from './opening-balance/opening-balance.module';
 import { OpeningBalanceEntity } from './opening-balance/entities/opening-balance.entity';
+import { TrialBalanceModule } from './trial-balance/trial-balance.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { OpeningBalanceEntity } from './opening-balance/entities/opening-balance
     JournalEntriesModule,
     FiscalYearModule,
     OpeningBalanceModule,
+    TrialBalanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
